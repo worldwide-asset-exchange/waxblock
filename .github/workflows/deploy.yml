@@ -1,0 +1,266 @@
+# WaxBlock CI/CD — frontend to Cloudflare Pages, API image to AWS ECR.
+#
+#   pull_request    lint + build (no secrets, no deploy)
+#   push to main    lint + build, frontend PREVIEW deploy  -> https://main.<project>.pages.dev
+#   tag vX.Y.Z      lint + build, frontend PRODUCTION deploy (waxblock.io) + API image <ECR_REPOSITORY>:vX.Y.Z
+#
+# The frontend is built once per network: mainnet into PAGES_PROJECT, testnet into PAGES_PROJECT_TESTNET,
+# localnet (the explorer for a user's own local chain; no API) into PAGES_PROJECT_LOCALNET. The testnet
+# and localnet deploys are skipped when their variable is unset. The API image is network-agnostic;
+# mainnet and testnet are two deployments of the same image with different environment.
+#
+# A release is a tag: one version names both the frontend that went live and the API image that the
+# Kubernetes deployment pins (the image digest is bumped in the gitops repo by a reviewed change).
+#
+# Repository settings:
+#   variable  CLOUDFLARE_ACCOUNT_ID   Cloudflare account that owns the Pages project
+#   variable  PAGES_PROJECT           Pages project name (default: waxblock)
+#   secret    CLOUDFLARE_API_TOKEN    token scoped to "Account / Cloudflare Pages / Edit". Store it as an
+#                                     ENVIRONMENT secret of `preview` (deployment branch: main) and
+#                                     `production` (deployment tags: v*), never as a repository secret,
+#                                     so a workflow on any other branch cannot read it.
+#   variable  PAGES_DOMAINS           comma-separated custom domains to attach to the Pages project
+#                                     (e.g. waxblock.io); the DNS record is managed in the zone itself
+#   variable  PAGES_PROJECT_TESTNET   Pages project for the testnet build (e.g. waxblock-testnet)
+#   variable  PAGES_DOMAINS_TESTNET   custom domains for the testnet project (e.g. testnet.waxblock.io)
+#   variable  PAGES_PROJECT_LOCALNET  Pages project for the localnet build (e.g. waxblock-localnet)
+#   variable  PAGES_DOMAINS_LOCALNET  custom domains for the localnet project (e.g. local.waxblock.io)
+#   variable  AWS_ROLE_ARN            IAM role GitHub OIDC assumes to push to ECR
+#   variable  AWS_REGION              ECR region (default: us-east-2)
+#   variable  ECR_REGISTRY            <account>.dkr.ecr.<region>.amazonaws.com
+#   variable  ECR_REPOSITORY          API image repository (default: prod/wax-waxblock-api)
+#
+# Block producers running their own copy: fork, set the Cloudflare variables/secret, and override any
+# value in apps/web/.env.mainnet.example with a repository variable of the same name (VITE_API_URL,
+# VITE_RPC_ENDPOINTS, ...). Testnet overrides use the TESTNET_ prefix (TESTNET_VITE_API_URL, ...) over
+# apps/web/.env.testnet.example, localnet the LOCALNET_ prefix over apps/web/.env.local.example. The API
+# job only runs when AWS_ROLE_ARN is set.
+name: deploy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22.22.0"
+  WRANGLER_VERSION: "4.20.0"
+
+jobs:
+  web:
+    name: web (${{ matrix.network }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { network: mainnet, env_file: .env.mainnet.example, prefix: "", project_var: PAGES_PROJECT, default_project: waxblock, domains_var: PAGES_DOMAINS }
+          - { network: testnet, env_file: .env.testnet.example, prefix: TESTNET_, project_var: PAGES_PROJECT_TESTNET, default_project: "", domains_var: PAGES_DOMAINS_TESTNET }
+          - { network: localnet, env_file: .env.local.example, prefix: LOCALNET_, project_var: PAGES_PROJECT_LOCALNET, default_project: "", domains_var: PAGES_DOMAINS_LOCALNET }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+        if: matrix.network == 'mainnet'
+
+      - name: Build (${{ matrix.network }})
+        env:
+          ENV_FILE: ${{ matrix.env_file }}
+          PREFIX: ${{ matrix.prefix }}
+          REPO_VARS: ${{ toJSON(vars) }}
+        run: |
+          set -euo pipefail
+          # Start from the network's example file; a repository variable named like one of its keys
+          # (with the network's prefix) overrides it. Vite prefers process env over .env files.
+          cp "apps/web/${ENV_FILE}" apps/web/.env
+          while IFS=$'\t' read -r k v; do
+            if [ -n "$v" ]; then export "${k#"$PREFIX"}=$v"; echo "override: ${k#"$PREFIX"}"; fi
+          done < <(jq -r --arg p "${PREFIX}VITE_" 'to_entries[] | select(.key | startswith($p)) | [.key, .value] | @tsv' <<<"$REPO_VARS")
+          npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build-${{ matrix.network }}
+          path: apps/web/build
+          retention-days: 7
+
+  pages:
+    name: pages (${{ matrix.network }})
+    needs: web
+    if: github.event_name != 'pull_request' && vars.CLOUDFLARE_ACCOUNT_ID != ''
+    runs-on: ubuntu-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/') && 'production' || 'preview' }}
+    strategy:
+      matrix:
+        include:
+          - { network: mainnet, env_file: .env.mainnet.example, prefix: "", project_var: PAGES_PROJECT, default_project: waxblock, domains_var: PAGES_DOMAINS }
+          - { network: testnet, env_file: .env.testnet.example, prefix: TESTNET_, project_var: PAGES_PROJECT_TESTNET, default_project: "", domains_var: PAGES_DOMAINS_TESTNET }
+          - { network: localnet, env_file: .env.local.example, prefix: LOCALNET_, project_var: PAGES_PROJECT_LOCALNET, default_project: "", domains_var: PAGES_DOMAINS_LOCALNET }
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PROJECT: ${{ vars[matrix.project_var] || matrix.default_project }}
+      # Tags deploy to the production branch; everything else is a preview alias.
+      BRANCH: ${{ startsWith(github.ref, 'refs/tags/') && 'production' || github.ref_name }}
+    steps:
+      - name: Skip when this network has no Pages project
+        if: env.PROJECT == ''
+        run: echo "${{ matrix.project_var }} is not set; skipping the ${{ matrix.network }} deploy."
+
+      - uses: actions/download-artifact@v4
+        if: env.PROJECT != ''
+        with:
+          name: web-build-${{ matrix.network }}
+          path: build
+
+      - name: Create the Pages project if it does not exist
+        if: env.PROJECT != ''
+        run: |
+          npx --yes "wrangler@${WRANGLER_VERSION}" pages project list | grep -qE "(^|[^[:alnum:]_-])${PROJECT}([^[:alnum:]_-]|$)" ||
+            npx --yes "wrangler@${WRANGLER_VERSION}" pages project create "$PROJECT" --production-branch=production
+
+      - name: Deploy
+        if: env.PROJECT != ''
+        run: |
+          npx --yes "wrangler@${WRANGLER_VERSION}" pages deploy build \
+            --project-name="$PROJECT" --branch="$BRANCH" \
+            --commit-hash="$GITHUB_SHA" --commit-message="${GITHUB_REF_NAME}"
+
+  pages-domains:
+    name: pages-domains (${{ matrix.network }})
+    needs: pages
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/') && 'production' || 'preview' }}
+    strategy:
+      matrix:
+        include:
+          - { network: mainnet, env_file: .env.mainnet.example, prefix: "", project_var: PAGES_PROJECT, default_project: waxblock, domains_var: PAGES_DOMAINS }
+          - { network: testnet, env_file: .env.testnet.example, prefix: TESTNET_, project_var: PAGES_PROJECT_TESTNET, default_project: "", domains_var: PAGES_DOMAINS_TESTNET }
+          - { network: localnet, env_file: .env.local.example, prefix: LOCALNET_, project_var: PAGES_PROJECT_LOCALNET, default_project: "", domains_var: PAGES_DOMAINS_LOCALNET }
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PROJECT: ${{ vars[matrix.project_var] || matrix.default_project }}
+      PAGES_DOMAINS: ${{ vars[matrix.domains_var] }}
+    steps:
+      - name: Attach custom domains (idempotent)
+        if: env.PROJECT != '' && env.PAGES_DOMAINS != ''
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${PROJECT}/domains"
+          auth=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json")
+          for d in ${PAGES_DOMAINS//,/ }; do
+            if ! curl -sf "${auth[@]}" "$api/$d" >/dev/null; then
+              curl -sf "${auth[@]}" -X POST --data "{\"name\":\"$d\"}" "$api" >/dev/null
+            fi
+            curl -s "${auth[@]}" "$api/$d" | jq -r '.result | "\(.name): \(.status) (certificate: \(.validation_data.status // "n/a"))"'
+          done
+
+  api-image:
+    needs: web
+    if: startsWith(github.ref, 'refs/tags/v') && vars.AWS_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # GitHub OIDC -> AWS
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-2' }}
+      ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+      ECR_REPO: ${{ vars.ECR_REPOSITORY || 'prod/wax-waxblock-api' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push
+        run: |
+          set -euo pipefail
+          IMAGE="${ECR_REGISTRY}/${ECR_REPO}:${GITHUB_REF_NAME}"
+          if aws ecr describe-images --repository-name "$ECR_REPO" --image-ids imageTag="$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "::error::${IMAGE} already exists; ECR tags are immutable. Cut a new version."
+            exit 1
+          fi
+          docker build -f apps/api/Dockerfile -t "$IMAGE" .
+          docker push "$IMAGE"
+          DIGEST=$(aws ecr describe-images --repository-name "$ECR_REPO" --image-ids imageTag="$GITHUB_REF_NAME" \
+            --query 'imageDetails[0].imageDigest' --output text)
+          {
+            echo "### waxblock-api ${GITHUB_REF_NAME}"
+            echo
+            echo "Pin in the gitops overlay:"
+            echo
+            echo '```yaml'
+            echo "image:"
+            echo "  tag: \"${GITHUB_REF_NAME}\""
+            echo "  digest: \"${DIGEST}\""
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Public image for infrastructure providers: ghcr.io/<owner>/waxblock-api:<tag>, linux/amd64 + linux/arm64.
+  # Uses only GITHUB_TOKEN; tags are immutable by convention (a release tag is never rebuilt).
+  api-image-ghcr:
+    needs: web
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Refuse to overwrite an existing release tag
+        run: |
+          set -euo pipefail
+          OWNER="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          echo "IMAGE=ghcr.io/${OWNER}/waxblock-api:${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          if docker manifest inspect "ghcr.io/${OWNER}/waxblock-api:${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "::error::ghcr.io/${OWNER}/waxblock-api:${GITHUB_REF_NAME} already exists. Cut a new version."
+            exit 1
+          fi
+      - uses: docker/build-push-action@v6
+        id: build
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.IMAGE }}
+          build-args: APP_VERSION=${{ github.ref_name }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ github.ref_name }}
+            org.opencontainers.image.revision=${{ github.sha }}
+      - name: Summary
+        run: |
+          {
+            echo "### waxblock-api ${GITHUB_REF_NAME} (GHCR)"
+            echo
+            echo "\`${IMAGE}@${{ steps.build.outputs.digest }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

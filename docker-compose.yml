@@ -1,0 +1,23 @@
+services:
+  waxblock-frontend:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+  waxblock-api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - path: apps/api/.env
+        required: false
+    ports:
+      - "8080:8080"
+    volumes:
+      - api-cache:/app/apps/api/cache
+    restart: unless-stopped
+
+volumes:
+  api-cache:

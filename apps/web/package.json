@@ -1,0 +1,67 @@
+{
+  "name": "waxblock-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "dev": "vite",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@base-ui/react": "1.6.0",
+    "@date-fns/tz": "1.5.0",
+    "@tanstack/react-query": "5.101.4",
+    "@wharfkit/antelope": "1.2.0",
+    "@wharfkit/atomicassets": "1.2.4",
+    "@wharfkit/protocol-scatter": "1.4.2",
+    "@wharfkit/session": "1.7.0",
+    "@wharfkit/wallet-plugin-anchor": "1.6.2",
+    "@wharfkit/wallet-plugin-cleos": "1.2.0",
+    "@wharfkit/wallet-plugin-cloudwallet": "1.6.5",
+    "@wharfkit/wallet-plugin-wombat": "1.5.1",
+    "@wharfkit/web-renderer": "1.4.3",
+    "chance": "1.1.13",
+    "copy-to-clipboard": "4.0.2",
+    "date-fns": "4.4.0",
+    "eosjs": "22.1.0",
+    "highcharts": "13.0.0",
+    "highcharts-react-official": "3.2.3",
+    "history": "5.3.0",
+    "html-react-parser": "6.1.5",
+    "js-sha256": "0.11.1",
+    "lucide-react": "1.27.0",
+    "react": "19.2.8",
+    "react-countdown": "2.3.6",
+    "react-day-picker": "10.0.1",
+    "react-dom": "19.2.8",
+    "react-error-boundary": "6.1.2",
+    "react-helmet-async": "3.0.0",
+    "react-jdenticon": "1.5.0",
+    "react-json-view-lite": "2.5.0",
+    "react-loading-skeleton": "3.5.0",
+    "react-router": "8.3.0",
+    "socket.io-client": "4.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.0",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.4",
+    "happy-dom": "20.14.5",
+    "vite": "8.1.5",
+    "vite-plugin-node-polyfills": "0.28.0",
+    "vitest": "4.1.10"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/worldwide-asset-exchange/waxblock.git"
+  }
+}

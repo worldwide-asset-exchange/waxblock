@@ -1,0 +1,165 @@
+.transfer-token-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.body_cont .mid_sec .form_sec .transfer-form .transfer-token-heading label {
+  width: auto;
+}
+
+.transfer-balance,
+.transfer-token-contract {
+  color: #b9b9d4;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.transfer-balance {
+  margin-bottom: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.transfer-token-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 54px;
+  padding: 8px 12px;
+  background: #1b1b41;
+  border: 1px solid #26264e;
+  border-radius: 2px;
+  color: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.transfer-token-trigger > svg {
+  flex-shrink: 0;
+}
+
+.transfer-token-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.transfer-token-identity img {
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+.transfer-token-identity strong,
+.transfer-token-contract {
+  display: block;
+  line-height: 18px;
+}
+
+.transfer-token-positioner {
+  z-index: 10000;
+  width: var(--anchor-width);
+  max-width: calc(100vw - 24px);
+}
+
+.transfer-token-popup {
+  max-height: min(320px, var(--available-height));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: #26264e;
+  border: 1px solid #7d70f6;
+  border-radius: 6px;
+  color: #fff;
+}
+
+.transfer-token-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 54px;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+.transfer-token-option[data-highlighted] {
+  background: #3c366b;
+  outline: none;
+}
+
+.transfer-token-custom {
+  border-top: 1px solid #555577;
+}
+
+.transfer-quantity-control {
+  position: relative;
+}
+
+.body_cont .mid_sec .form_sec .transfer-form .transfer-quantity-control input {
+  min-height: 54px;
+  padding-right: 68px;
+}
+
+.transfer-max {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-height: 40px;
+  padding: 0 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: #c0b8ff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.transfer-max:hover:not(:disabled) {
+  background: #35305d;
+  color: #fff;
+}
+
+.transfer-max:disabled {
+  color: #9999b8;
+  cursor: not-allowed;
+}
+
+.transfer-form :focus-visible {
+  outline: 2px solid #b5aaff;
+  outline-offset: 3px;
+}
+
+.body_cont .mid_sec .form_sec .transfer-form [aria-invalid="true"] {
+  border-color: #ffaaa8;
+}
+
+.body_cont .mid_sec .form_sec .transfer-form .transfer-error {
+  margin: 8px 0 0;
+  padding: 0;
+  color: #ffaaa8;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.transfer-form .field_col {
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .transfer-token-heading {
+    align-items: flex-start;
+  }
+
+  .transfer-balance {
+    max-width: 100%;
+  }
+}

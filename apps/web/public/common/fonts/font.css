@@ -1,0 +1,89 @@
+@font-face {
+    font-family: 'DMSans-Medium';
+    src: url('DMSans-Medium.woff2') format('woff2'),
+        url('DMSans-Medium.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Gotham-Bold';
+    src: url('Gotham-Bold.woff2') format('woff2'),
+        url('Gotham-Bold.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Gotham-Medium';
+    src: url('Gotham-Medium.woff2') format('woff2'),
+        url('Gotham-Medium.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Gotham-Book';
+    src: url('Gotham-Book.woff2') format('woff2'),
+        url('Gotham-Book.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Gotham-Light';
+    src: url('Gotham-Light.woff2') format('woff2'),
+        url('Gotham-Light.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'CaslonDoric-Bold';
+    src: url('CaslonDoric-Bold.woff2') format('woff2'),
+        url('CaslonDoric-Bold.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'CaslonDoric-RegularItalic';
+    src: url('CaslonDoric-RegularItalic.woff2') format('woff2'),
+        url('CaslonDoric-RegularItalic.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'CaslonDoric-Regular';
+    src: url('CaslonDoric-Regular.woff2') format('woff2'),
+        url('CaslonDoric-Regular.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'OriginalSans-Four';
+    src: url('OriginalSans-Four.woff2') format('woff2'),
+        url('OriginalSans-Four.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Roboto-Regular';
+    src: url('Roboto-Regular.woff2') format('woff2'),
+        url('Roboto-Regular.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}

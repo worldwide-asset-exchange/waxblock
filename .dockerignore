@@ -1,0 +1,22 @@
+.git
+**/node_modules
+**/build
+**/dist
+**/coverage
+**/.cache
+**/.nyc_output
+**/cache
+.agents
+.codex
+.opencode
+.idea
+**/*.tsbuildinfo
+**/npm-debug.log*
+
+# Only the frontend's selected build-time environment belongs in an image.
+**/.env*
+!apps/web/.env
+
+# API tests and documentation are not runtime assets.
+apps/api/test
+**/*.md

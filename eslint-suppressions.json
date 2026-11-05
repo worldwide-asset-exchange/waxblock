@@ -1,0 +1,105 @@
+{
+  "apps/api/src/app.js": {
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/api/src/crons/index - Copy.js": {
+    "no-empty": {
+      "count": 7
+    },
+    "no-unused-vars": {
+      "count": 8
+    }
+  },
+  "apps/api/src/crons/index.js": {
+    "no-empty": {
+      "count": 7
+    },
+    "no-unused-vars": {
+      "count": 8
+    }
+  },
+  "apps/api/src/helpers/producer.js": {
+    "no-async-promise-executor": {
+      "count": 6
+    },
+    "no-unused-vars": {
+      "count": 10
+    }
+  },
+  "apps/api/src/helpers/proxy.js": {
+    "no-async-promise-executor": {
+      "count": 2
+    }
+  },
+  "apps/api/src/helpers/token.js": {
+    "no-async-promise-executor": {
+      "count": 4
+    },
+    "no-undef": {
+      "count": 23
+    },
+    "no-unused-vars": {
+      "count": 5
+    }
+  },
+  "apps/api/src/index.js": {
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  "apps/api/src/jobs/blocks.js": {
+    "no-redeclare": {
+      "count": 1
+    },
+    "no-undef": {
+      "count": 3
+    },
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  "apps/api/src/jobs/chainInfo.js": {
+    "no-empty": {
+      "count": 1
+    },
+    "no-unused-vars": {
+      "count": 1
+    }
+  },
+  "apps/api/src/routes/api/v1/tokens.js": {
+    "no-unused-vars": {
+      "count": 4
+    }
+  },
+  "apps/api/src/services/blockchainApiManager.js": {
+    "no-async-promise-executor": {
+      "count": 20
+    },
+    "no-case-declarations": {
+      "count": 2
+    },
+    "no-unused-vars": {
+      "count": 3
+    }
+  },
+  "apps/api/src/services/fetchManager.js": {
+    "no-unreachable": {
+      "count": 8
+    },
+    "no-unused-vars": {
+      "count": 2
+    }
+  },
+  "apps/api/src/test.js": {
+    "no-unused-vars": {
+      "count": 5
+    }
+  },
+  "apps/api/test/backward-compatibility.test.js": {
+    "no-prototype-builtins": {
+      "count": 3
+    }
+  }
+}
