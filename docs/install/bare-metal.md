@@ -88,7 +88,8 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now waxblock-api@mainnet waxblock-api@testnet
 ```
 
-Check them. `/api/v1/health` returns `503` for about 3 minutes after the first start, then `200`.
+Check them. The API opens its port a few seconds after the start; until then `curl` prints nothing (exit
+code 7). `/api/v1/health` then returns `503` for about 3 minutes after the first start, then `200`.
 
 ```sh
 systemctl status waxblock-api@mainnet waxblock-api@testnet --no-pager
