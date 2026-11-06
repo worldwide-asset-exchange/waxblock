@@ -7,6 +7,7 @@ const morgan = require('./config/morgan');
 const routes = require('./routes');
 const { errorConverter, errorHandler } = require('./middlewares/error');
 const ApiError = require('./utils/ApiError');
+const originAuth = require('./middlewares/originAuth');
 
 
 const app = express();
@@ -26,6 +27,9 @@ app.use(xss());
 // enable cors
 app.use(cors());
 app.options("*", cors());
+
+// Refuse requests that did not come through the WaxBlock Cloudflare zone (when ORIGIN_AUTH_KEY is set)
+app.use(originAuth.httpMiddleware);
 
 // All routes
 app.use(routes);

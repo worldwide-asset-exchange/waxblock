@@ -1,7 +1,10 @@
 # API reference
 
 Base URLs: `https://waxblock-api.waxblock.io` (mainnet), `https://testnet-api.waxblock.io` (testnet).
-All responses are JSON. All routes are `GET`, read-only and unauthenticated. CORS allows every origin.
+All responses are JSON. All routes are `GET` and read-only. CORS allows every origin. Users need no
+credentials; the origin servers accept only requests that come through the WaxBlock Cloudflare zone
+(`ORIGIN_AUTH_KEY`, see [CONFIGURATION.md](CONFIGURATION.md)) and answer `403` to anything else, except
+`/health` and `/test`.
 
 ## REST routes (`/api/v1`)
 

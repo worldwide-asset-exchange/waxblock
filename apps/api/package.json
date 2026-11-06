@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "test": "npm run test:config && npm run test:cron && npm run test:producer && npm run test:api && npm run test:backward-compat && npm run test:health",
+    "test": "npm run test:config && npm run test:cron && npm run test:producer && npm run test:api && npm run test:backward-compat && npm run test:health && npm run test:origin-auth",
     "test:config": "mocha test/config.test.js --timeout 10000",
     "test:cron": "mocha test/cron.test.js --timeout 10000",
     "test:all": "npm test",
@@ -15,7 +15,8 @@
     "test:backward-compat": "mocha test/backward-compatibility.test.js --timeout 10000",
     "test:health": "mocha test/health.test.js --timeout 10000",
     "dev": "node --watch src/index.js",
-    "lint": "cd ../.. && eslint apps/api"
+    "lint": "cd ../.. && eslint apps/api",
+    "test:origin-auth": "mocha test/origin-auth.test.js --timeout 10000 --exit"
   },
   "author": "",
   "license": "MIT",

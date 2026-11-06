@@ -51,7 +51,7 @@ Replace `v1.3.1` with the version we announce. Compare the commit with the one i
 VERSION=v1.3.1
 sudo git clone --depth 1 --branch "$VERSION" \
   https://github.com/worldwide-asset-exchange/waxblock.git "/opt/waxblock/releases/$VERSION"
-git -C "/opt/waxblock/releases/$VERSION" rev-parse HEAD     # must match the release notes
+sudo git -C "/opt/waxblock/releases/$VERSION" rev-parse HEAD   # must match the release notes
 cd "/opt/waxblock/releases/$VERSION"
 sudo npm ci --workspace=apps/api --omit=dev --ignore-scripts
 sudo ln -sfn "/opt/waxblock/releases/$VERSION" /opt/waxblock/current
@@ -60,19 +60,25 @@ echo "APP_VERSION=$VERSION" | sudo tee /etc/waxblock/release.env
 
 ## 5. Configuration
 
-Start from the example files. Point the endpoints at your own WAX nodes where you can
-([CONFIGURATION.md](../CONFIGURATION.md)). The two instances share the server, so testnet listens on 8081.
+Start from the example files. The two instances share the server, so testnet listens on 8081.
 
 ```sh
-sudo cp /opt/waxblock/current/deploy/env/mainnet.env /etc/waxblock/mainnet.env
-sudo cp /opt/waxblock/current/deploy/env/testnet.env /etc/waxblock/testnet.env
+sudo install -m 0600 -o root -g root /opt/waxblock/current/deploy/env/mainnet.env /etc/waxblock/mainnet.env
+sudo install -m 0600 -o root -g root /opt/waxblock/current/deploy/env/testnet.env /etc/waxblock/testnet.env
 sudo sed -i 's/^PORT=.*/PORT=8081/' /etc/waxblock/testnet.env
-sudo chmod 0644 /etc/waxblock/*.env
 sudoedit /etc/waxblock/mainnet.env /etc/waxblock/testnet.env
 ```
 
-Do not set `CACHE_DIR` in these files. The unit sets it to `/var/lib/waxblock`; the API adds the network
-name, so the caches are `/var/lib/waxblock/mainnet` and `/var/lib/waxblock/testnet`.
+In both files:
+
+- Point the endpoints at your own WAX nodes where you can ([CONFIGURATION.md](../CONFIGURATION.md)).
+- Add the origin key we send you: `ORIGIN_AUTH_KEY=<value>` ([reverse-proxy.md](reverse-proxy.md#the-origin-key)).
+
+The files are readable by root only; systemd reads them before it starts the service.
+
+Do not set `CACHE_DIR` or `BIND_ADDRESS` in these files. The unit sets the cache to `/var/lib/waxblock`
+(the API adds the network name: `/var/lib/waxblock/mainnet`, `/var/lib/waxblock/testnet`) and makes the API
+listen on `127.0.0.1` only.
 
 ## 6. Start the services
 
@@ -91,18 +97,17 @@ curl -s http://127.0.0.1:8081/api/v1/health    # "status":"ok","network":"testne
 journalctl -u waxblock-api@mainnet -f          # logs
 ```
 
-The services listen on all interfaces. Do not open ports 8080 and 8081 in your firewall; nginx is the only
-public entry.
+The services listen on `127.0.0.1` only (`ss -ltn | grep -E ':808[01]'`). nginx is the only public entry.
 
 ## 7. nginx, TLS and access
 
 Continue with [reverse-proxy.md](reverse-proxy.md). It sets up the certificates, allows only Cloudflare,
-and verifies Cloudflare's client certificate.
+and checks the setup with the origin key.
 
 ## 8. Firewall (recommended)
 
-nginx already refuses everything that does not come from Cloudflare. Also close the ports at the host or
-network firewall. With `ufw`:
+nginx already refuses everything that does not come from Cloudflare. Closing port 443 at the host or
+network firewall as well means that other clients cannot even open a TLS connection. With `ufw`:
 
 ```sh
 sudo ufw allow OpenSSH
@@ -113,8 +118,8 @@ done
 sudo ufw enable
 ```
 
-Re-run the loop when Cloudflare changes its list (rare; the nginx script in step 7 tells you when it
-changes).
+Re-run the loop when Cloudflare changes its list. This is rare; the daily nginx script from step 7 prints
+`updated ... Cloudflare ranges` (mailed to root by cron) when it happens.
 
 ## Upgrade
 

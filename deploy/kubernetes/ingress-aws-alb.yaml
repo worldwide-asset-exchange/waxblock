@@ -16,7 +16,6 @@ metadata:
     alb.ingress.kubernetes.io/healthcheck-path: /api/v1/health
     alb.ingress.kubernetes.io/success-codes: "200"
     alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
-    alb.ingress.kubernetes.io/mutual-authentication: '[{"port":443,"mode":"verify","trustStore":"arn:aws:elasticloadbalancing:<region>:<account>:truststore/waxblock-cloudflare-aop/<id>"}]'
 spec:
   ingressClassName: alb
   rules:

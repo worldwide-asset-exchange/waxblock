@@ -2,11 +2,13 @@ const socketIO = require("socket.io");
 const logger = require("../config/logger");
 var globals = require("node-global-storage");
 const crons = require("../crons");
+const originAuth = require("../middlewares/originAuth");
 
 let io;
 const createServer = (server) => {
   io = socketIO(server, {
     path: "/socket",
+    allowRequest: originAuth.allowSocketRequest,
     cors: {
       origin: "*",
     },

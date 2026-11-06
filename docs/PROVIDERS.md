@@ -21,8 +21,8 @@ balancer.
 | Pools | `waxblock-api-mainnet` and `waxblock-api-testnet`, one origin per provider in each |
 | Origin address | your hostname, for example `waxblock-api.<your-domain>` |
 | Host header / SNI sent to you | your hostname (not `waxblock-api.waxblock.io`) |
-| Health monitor | `GET https://<your-hostname>/api/v1/health`, expect `200`, every 60 s, timeout 10 s, 2 retries, from several regions. Simulate zone: `waxblock.io`, so the monitor presents the Authenticated Origin Pulls certificate |
-| Authenticated Origin Pulls | Enabled on the `waxblock.io` zone: every request to your origin carries Cloudflare's client certificate |
+| Health monitor | `GET https://<your-hostname>/api/v1/health`, expect `200`, every 60 s, timeout 10 s, 2 retries, from several regions |
+| Origin key | Every request for the WaxBlock API hostnames carries `X-WaxBlock-Origin-Auth` (Cloudflare Transform Rule). We send you the value privately; you set it as `ORIGIN_AUTH_KEY` |
 | Steering | dynamic (lowest latency among healthy origins); an unhealthy origin gets no traffic |
 | Session affinity | cookie, 1 h (safety net; the frontend uses WebSocket only) |
 | Traffic you can expect | measured before the migration: ~45,000 API requests/day on mainnet, ~10,000 on testnet, split across providers |
@@ -32,7 +32,7 @@ balancer.
 1. Install the mainnet and testnet API with the guide for your environment
    ([install/README.md](install/README.md): bare metal, Docker, Kubernetes, AWS), at the release we give you.
 2. Point the endpoints at your own WAX infrastructure where you can ([CONFIGURATION.md](CONFIGURATION.md)).
-3. Set up TLS, Cloudflare-only access and Authenticated Origin Pulls
+3. Set up TLS, Cloudflare-only access and the origin key
    ([install/reverse-proxy.md](install/reverse-proxy.md), or the Kubernetes and AWS equivalents).
 4. Check on your host or cluster:
 

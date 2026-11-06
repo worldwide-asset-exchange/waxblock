@@ -4,10 +4,18 @@ This guide runs the release image with Docker Compose on one Linux host: mainnet
 testnet on `127.0.0.1:8081`. nginx on the host terminates TLS. It works on a physical server, a VM and any
 cloud instance.
 
-## 1. Docker
+## 1. Docker and the reverse proxy packages
 
 Install Docker Engine and the Compose plugin from Docker's repository
-(<https://docs.docker.com/engine/install/>). Check:
+(<https://docs.docker.com/engine/install/>). Install nginx, certbot and jq for the reverse proxy (Debian or
+Ubuntu):
+
+```sh
+sudo apt-get update
+sudo apt-get install -y curl jq nginx certbot
+```
+
+Check Docker:
 
 ```sh
 docker version --format '{{.Server.Version}}'
@@ -25,9 +33,16 @@ for f in docker-compose.yml env/mainnet.env env/testnet.env; do
 done
 ```
 
-Edit `env/mainnet.env` and `env/testnet.env`: point the endpoints at your own WAX nodes where you can
-([CONFIGURATION.md](../CONFIGURATION.md)). Keep `PORT=8080` in both; Compose maps testnet to 8081 on the
-host.
+```sh
+sudo chmod 0600 env/mainnet.env env/testnet.env
+sudoedit env/mainnet.env env/testnet.env
+```
+
+In both files:
+
+- Point the endpoints at your own WAX nodes where you can ([CONFIGURATION.md](../CONFIGURATION.md)).
+- Add the origin key we send you: `ORIGIN_AUTH_KEY=<value>` ([reverse-proxy.md](reverse-proxy.md#the-origin-key)).
+- Keep `PORT=8080`; Compose maps testnet to 8081 on the host.
 
 ## 3. Pin the image
 
@@ -57,12 +72,12 @@ to `127.0.0.1` only.
 
 ## 5. nginx, TLS and access
 
-Install nginx on the host and follow [reverse-proxy.md](reverse-proxy.md). The nginx configuration already
-points at `127.0.0.1:8080` and `127.0.0.1:8081`.
+Follow [reverse-proxy.md](reverse-proxy.md). In step 2 use the commands for an install without a source
+checkout. The nginx configuration already points at `127.0.0.1:8080` and `127.0.0.1:8081`.
 
 If you already run a reverse proxy in a container (Traefik, Caddy, nginx), connect it to the Compose
-network instead, and keep the same rules: TLS, only Cloudflare, AOP client certificate, WebSocket on
-`/socket/` with a 300 s timeout, `/api/v1/health` reachable without the client certificate.
+network instead, and keep the same rules: TLS, only Cloudflare source addresses, all request headers passed through, WebSocket
+on `/socket/` with a 300 s timeout.
 
 ## Upgrade
 

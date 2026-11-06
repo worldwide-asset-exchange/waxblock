@@ -16,7 +16,7 @@ curl -s http://127.0.0.1:8080/api/v1/health | jq
 
 | Field | Meaning | Action |
 |---|---|---|
-| `chain.error: "get_info timeout"` or `"get_info unreachable"` | `BLOCKCHAIN_DEFAULT` does not answer within 5 s. | Check the endpoint from the host: `curl -s $BLOCKCHAIN_DEFAULT/v1/chain/get_info`. Check outbound firewall rules and DNS. |
+| `chain.error: "get_info timeout"` or `"get_info unreachable"` | `BLOCKCHAIN_DEFAULT` does not answer within 5 s. | Check the endpoint from the host: `curl -s <BLOCKCHAIN_DEFAULT value>/v1/chain/get_info`. Check outbound firewall rules and DNS. |
 | `chain.error: "get_info HTTP 4xx/5xx"` | The endpoint answers with an error. | Check the URL (no trailing path) and the node. |
 | `chain.ok: false` with `head_block_age_seconds` above 60 | Your node is behind the chain. | Fix the node, or point `BLOCKCHAIN_DEFAULT` at a node in sync. Only raise `HEALTH_MAX_HEAD_AGE_SECONDS` if you understand that users then see old data. |
 | `caches.producers: false` | The producer list has not loaded yet. | Normal for about 3 minutes after the first start. If it stays false, read the logs for errors from the producer job (it reads the chain and each producer's `bp.json`). |
@@ -38,8 +38,8 @@ curl -s http://127.0.0.1:8080/api/v1/health | jq
 |---|---|---|
 | nginx access log shows `403` for Cloudflare addresses | The Cloudflare IP list is missing or old. | Run `sudo /usr/local/sbin/waxblock-update-cloudflare-ips`. Check `/etc/nginx/waxblock/cloudflare-geo.conf` is not empty. |
 | Every request shows the same internal address (Kubernetes) | The ingress controller does not see the peer address. | Set `externalTrafficPolicy: Local` or enable PROXY protocol ([kubernetes.md](kubernetes.md#5-ingress-tls-and-access)). |
-| `403` on `/api/` for Cloudflare addresses, `$ssl_client_verify` is `NONE` | Cloudflare does not present a client certificate yet. | Tell us; Authenticated Origin Pulls is enabled on our side. |
-| `400 The SSL certificate error` | The client certificate does not match your CA file. | Check `/etc/nginx/waxblock/origin-pull-ca.pem` (fingerprint in [reverse-proxy.md](reverse-proxy.md#3-aop-certificate)), or the certificate we sent you. |
+| The API answers `403` to `/api/` requests from Cloudflare | The origin key is wrong or missing on one side. | Compare `ORIGIN_AUTH_KEY` in both instances with the value we sent (no quotes, no spaces). Restart after a change. Tell us if it matches. |
+| The startup log shows `Origin authentication: off` | `ORIGIN_AUTH_KEY` is not set. | Add it to the instance's environment ([reverse-proxy.md](reverse-proxy.md#the-origin-key)). |
 | The site works, but the live block feed does not update | The WebSocket on `/socket/` is closed by a proxy. | Check that your proxy passes `Upgrade`/`Connection` and has an idle timeout of at least 100 s (ALB: `idle_timeout.timeout_seconds`). |
 
 ## Stopping and restarting

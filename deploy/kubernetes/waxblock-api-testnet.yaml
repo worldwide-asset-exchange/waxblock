@@ -43,6 +43,7 @@ spec:
           image: ghcr.io/worldwide-asset-exchange/waxblock-api:v1.3.1
           envFrom:
             - configMapRef: { name: waxblock-api-testnet }
+            - secretRef: { name: waxblock-origin-auth } # ORIGIN_AUTH_KEY, see docs/install/kubernetes.md
           ports:
             - { name: http, containerPort: 8080 }
           resources:

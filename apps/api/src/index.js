@@ -53,8 +53,9 @@ var cacheStorage = storage.create({ dir: `${config.cache_dir}/${config.network_t
   
 
   server = http.createServer(app);
-  server.listen(config.port, function () {
-    logger.info(`Express App and Socket Listening to port ${config.port}`);
+  server.listen(config.port, config.bind_address, function () {
+    logger.info(`Express App and Socket Listening to ${config.bind_address || "all interfaces"} port ${config.port}`);
+    logger.info(`Origin authentication: ${config.origin_auth_key ? "on" : "off (ORIGIN_AUTH_KEY not set)"}`);
 
     crons.createCronJobs();
   });

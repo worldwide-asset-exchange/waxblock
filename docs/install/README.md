@@ -35,6 +35,7 @@ Every guide ends with the same TLS and access setup: [reverse-proxy.md](reverse-
 | Disk | 1 GiB per network for the cache. |
 | Architecture | `linux/amd64` or `linux/arm64`. |
 | Inbound | HTTPS on port 443, from Cloudflare only. Port 80 only if you use HTTP-01 certificate validation. |
+| Origin key | The `ORIGIN_AUTH_KEY` value we send you privately ([reverse-proxy.md](reverse-proxy.md#the-origin-key)). |
 | Outbound | HTTPS to your WAX endpoints and to the hosts in [CONFIGURATION.md](../CONFIGURATION.md#outbound-access). |
 | TLS | A publicly trusted certificate for each of your two hostnames (for example Let's Encrypt). |
 | WebSocket | Upgrades on `/socket/`, idle timeout of at least 100 s (300 s recommended). |

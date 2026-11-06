@@ -30,8 +30,14 @@ In both `waxblock-api-*.yaml` files:
 
 ## 3. Apply
 
+Create the namespace and the Secret with the origin key we send you
+([reverse-proxy.md](reverse-proxy.md#the-origin-key)), then the workloads:
+
 ```sh
 kubectl create namespace waxblock
+read -rs ORIGIN_AUTH_KEY    # paste the value; it is not echoed and not stored in shell history
+kubectl -n waxblock create secret generic waxblock-origin-auth --from-literal=ORIGIN_AUTH_KEY="$ORIGIN_AUTH_KEY"
+unset ORIGIN_AUTH_KEY
 kubectl -n waxblock apply -f waxblock-api-mainnet.yaml -f waxblock-api-testnet.yaml
 kubectl -n waxblock rollout status deploy/waxblock-api-mainnet --timeout=10m
 kubectl -n waxblock rollout status deploy/waxblock-api-testnet --timeout=10m
@@ -61,31 +67,23 @@ default: a WebSocket is one long-lived connection).
 
 ## 5. Ingress, TLS and access
 
-The controls are the same as for every install ([reverse-proxy.md](reverse-proxy.md)): TLS with a public
-certificate, only Cloudflare source addresses, the Cloudflare client certificate (AOP) verified, and
-WebSocket on `/socket/` with a 300 s timeout.
+The requirements are the same as for every install ([reverse-proxy.md](reverse-proxy.md)): TLS with a
+public certificate, only Cloudflare source addresses, all request headers passed through to the API (it
+checks the origin key itself), and WebSocket on `/socket/` with a 300 s timeout.
 
 `ingress.yaml` does this with ingress-nginx and cert-manager:
 
 1. Replace the two example hostnames.
-2. Create the AOP CA secret:
-
-   ```sh
-   curl -fsS -o origin-pull-ca.pem https://developers.cloudflare.com/ssl/static/authenticated_origin_pull_ca.pem
-   kubectl -n waxblock create secret generic cloudflare-origin-pull-ca --from-file=ca.crt=origin-pull-ca.pem
-   ```
-
+2. cert-manager needs a ClusterIssuer. The example uses one named `letsencrypt`; create it if you do not
+   have one (<https://cert-manager.io/docs/configuration/acme/>), or change the annotation to your issuer.
+   Without a valid certificate Cloudflare (Full strict) refuses the connection.
 3. Check that the controller sees the real peer address. With a cloud load balancer in front of
    ingress-nginx, set `externalTrafficPolicy: Local` on the controller Service (or enable PROXY protocol).
    Otherwise every request appears to come from a node address and the source-range list refuses them all.
 4. `kubectl -n waxblock apply -f ingress.yaml`
 
-The ingress-nginx example requires the client certificate on every path, including `/api/v1/health`. Our
-load-balancer monitor presents it, so this works. If your local monitoring needs `/api/v1/health` without
-it, probe the Service inside the cluster instead.
-
-With another controller (Gateway API, Traefik, HAProxy, a cloud load balancer), configure the same four
-controls with its own settings. On AWS, see [aws.md](aws.md#eks).
+With another controller (Gateway API, Traefik, HAProxy, a cloud load balancer), configure the same
+requirements with its own settings. On AWS, see [aws.md](aws.md#eks).
 
 ## Upgrade
 

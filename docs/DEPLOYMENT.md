@@ -13,7 +13,7 @@ Pick the guide for your environment in [install/README.md](install/README.md):
 | Any Linux host with Docker | [install/docker.md](install/docker.md) |
 | Kubernetes | [install/kubernetes.md](install/kubernetes.md) |
 | AWS: EC2, ECS Fargate, EKS | [install/aws.md](install/aws.md) |
-| TLS, Cloudflare-only access, Authenticated Origin Pulls (all environments) | [install/reverse-proxy.md](install/reverse-proxy.md) |
+| TLS, Cloudflare-only access, origin key (all environments) | [install/reverse-proxy.md](install/reverse-proxy.md) |
 | Problems | [install/troubleshooting.md](install/troubleshooting.md) |
 
 ## Health

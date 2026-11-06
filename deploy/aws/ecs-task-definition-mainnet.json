@@ -71,6 +71,12 @@
           "value": "1765252639411"
         }
       ],
+      "secrets": [
+        {
+          "name": "ORIGIN_AUTH_KEY",
+          "valueFrom": "arn:aws:secretsmanager:<REGION>:<ACCOUNT_ID>:secret:waxblock/origin-auth-key"
+        }
+      ],
       "mountPoints": [
         {
           "sourceVolume": "cache",
@@ -92,7 +98,6 @@
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "/waxblock/api-mainnet",
-          "awslogs-create-group": "true",
           "awslogs-region": "<REGION>",
           "awslogs-stream-prefix": "api"
         }

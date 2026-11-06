@@ -1,12 +1,12 @@
 # WaxBlock API — example Ingress for ingress-nginx with cert-manager. See docs/install/kubernetes.md.
 # Adapt the annotations if you use another controller; the requirements are the same:
 #   TLS with a public certificate · WebSocket on /socket/ with a long timeout · only Cloudflare source
-#   addresses · Cloudflare's Authenticated Origin Pulls client certificate verified.
+#   addresses. (The origin key is checked by the API itself.)
 #
 # Before applying:
 #   1. Replace the two example hostnames.
-#   2. Create the CA secret:  kubectl -n waxblock create secret generic cloudflare-origin-pull-ca \
-#        --from-file=ca.crt=origin-pull-ca.pem      (see docs/install/reverse-proxy.md)
+#   2. cert-manager needs a ClusterIssuer named letsencrypt (see docs/install/kubernetes.md), or change
+#      the annotation to your issuer.
 #   3. The source-range list below is Cloudflare's list on 2026-11-06. Refresh it from
 #      https://api.cloudflare.com/client/v4/ips when Cloudflare changes it. The controller must see the
 #      real peer address (for example Service externalTrafficPolicy: Local), or the list blocks everyone.
@@ -19,9 +19,6 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/whitelist-source-range: "173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,141.101.64.0/18,108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,197.234.240.0/22,198.41.128.0/17,162.158.0.0/15,104.16.0.0/13,104.24.0.0/14,172.64.0.0/13,131.0.72.0/22,2400:cb00::/32,2606:4700::/32,2803:f800::/32,2405:b500::/32,2405:8100::/32,2a06:98c0::/29,2c0f:f248::/32"
-    nginx.ingress.kubernetes.io/auth-tls-secret: waxblock/cloudflare-origin-pull-ca # namespace/name
-    nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
-    nginx.ingress.kubernetes.io/auth-tls-verify-depth: "1"
 spec:
   ingressClassName: nginx
   tls:
