@@ -31,7 +31,7 @@ curl -s http://127.0.0.1:8080/api/v1/health | jq
 | `EISDIR: illegal operation on a directory` | The cache directory contains a sub-directory. The cache library reads every entry as a file. | Stop the process, empty `<CACHE_DIR>/<network>/`, start again. Point `CACHE_DIR` at the parent directory only; the API adds the network name. |
 | Pod `CreateContainerConfigError: container has runAsNonRoot and image has non-numeric user` | Old image. | Use v1.3.0 or later. |
 | Exits at once: `ORIGIN_AUTH_KEY is not set` | Production mode requires the origin key. | Add `ORIGIN_AUTH_KEY` to the instance's environment ([reverse-proxy.md](reverse-proxy.md#the-origin-key)). |
-| Exits at once: `ORIGIN_AUTH_KEY must be at least 32 printable ASCII characters` | The value is truncated, quoted or has spaces. | Copy the value again exactly as we sent it, without quotes. |
+| Exits at once: `ORIGIN_AUTH_KEY must be at least 32 printable ASCII characters` | The value is truncated, quoted, has spaces, or ends with a newline. A newline comes in when you create the Kubernetes Secret with `--from-file` or write the key with `echo` into a file. | Copy the value again exactly as we sent it, without quotes. In Kubernetes, use `--from-literal` as in [kubernetes.md](kubernetes.md#3-apply). |
 | `EADDRINUSE` | Mainnet and testnet use the same port on one host. | Bare metal: testnet uses `PORT=8081` ([bare-metal.md](bare-metal.md#5-configuration)). |
 
 ## Requests through Cloudflare fail
