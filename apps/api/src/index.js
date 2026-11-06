@@ -132,9 +132,19 @@ const unexpectedErrorHandler = (error) => {
 process.on("uncaughtException", unexpectedErrorHandler);
 process.on("unhandledRejection", unexpectedErrorHandler);
 
-process.on("SIGTERM", () => {
-  logger.info("SIGTERM received");
-  if (server) {
-    server.close();
-  }
-});
+// systemd, Docker and Kubernetes stop the service with SIGTERM. Closing the listener alone is not enough:
+// open WebSocket and keep-alive connections and the cron timers keep the process alive, so disconnect
+// the clients, close the server and exit. The deadline stops a stuck connection from blocking a restart.
+const shutdown = (signal) => {
+  logger.info(`${signal} received, shutting down`);
+  setTimeout(() => process.exit(0), 10 * 1000).unref();
+  if (!server) process.exit(0);
+  // io.close() disconnects every socket.io client and then closes the HTTP server.
+  const done = () => process.exit(0);
+  if (io) io.close(done);
+  else server.close(done);
+  server.closeAllConnections();
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

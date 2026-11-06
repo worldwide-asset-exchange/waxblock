@@ -1,0 +1,48 @@
+# WaxBlock API — systemd template unit for a bare-metal or VM install. One instance per network:
+#   systemctl enable --now waxblock-api@mainnet waxblock-api@testnet
+# Reads /etc/waxblock/<network>.env and writes its cache to /var/lib/waxblock/<network>.
+# See docs/install/bare-metal.md.
+[Unit]
+Description=WaxBlock API (%i)
+Documentation=https://github.com/worldwide-asset-exchange/waxblock/blob/main/docs/install/bare-metal.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=waxblock
+Group=waxblock
+WorkingDirectory=/opt/waxblock/current/apps/api
+Environment=NODE_ENV=production
+Environment=CACHE_DIR=/var/lib/waxblock
+EnvironmentFile=/etc/waxblock/%i.env
+EnvironmentFile=-/etc/waxblock/release.env
+ExecStart=/usr/local/bin/node src/index.js
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+StateDirectory=waxblock
+StateDirectoryMode=0750
+
+# Hardening: the service needs outbound HTTPS and its cache directory, nothing else.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+MemoryMax=1G
+
+[Install]
+WantedBy=multi-user.target

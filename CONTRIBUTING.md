@@ -19,6 +19,6 @@ features use `@wharfkit/antelope`, not `eosjs` or `waxjs`.
 
 Releases are cut by the maintainers: a `vX.Y.Z` tag deploys the frontend and publishes the API image
 `ghcr.io/worldwide-asset-exchange/waxblock-api:vX.Y.Z`. Infrastructure providers then upgrade one at a time
-([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#upgrades)).
+([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#releases-and-upgrades)).
 
 By contributing you agree that your contribution is licensed under the [MIT License](LICENSE).

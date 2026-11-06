@@ -24,14 +24,15 @@ All responses are JSON. All routes are `GET`, read-only and unauthenticated. COR
 {
   "status": "ok",
   "network": "mainnet",
-  "version": "v1.3.0",
+  "version": "v1.3.1",
   "chain": { "ok": true, "head_block_num": 464777476, "head_block_age_seconds": 0, "latency_ms": 153 },
   "caches": { "producers": true, "tokens": true }
 }
 ```
 
 - `200` when the configured RPC (`BLOCKCHAIN_DEFAULT`) answers `get_info` in less than 5 s, its head block is
-  at most `HEALTH_MAX_HEAD_AGE_SECONDS` (default 60) old, **and** the producer and token caches are populated.
+  at most `HEALTH_MAX_HEAD_AGE_SECONDS` (default 60) old, **and** the producer cache is populated. On mainnet
+  the token cache must also be populated. Testnet builds no token list and reports `"tokens": "not used"`.
 - `503` otherwise, with `status: "unavailable"` and the failing part in `chain` or `caches`.
 - After a cold start (empty cache), `/health` returns `503` for about 2–3 minutes until the token list is built.
   This is correct: the instance cannot serve complete data yet.

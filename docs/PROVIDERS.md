@@ -21,27 +21,30 @@ balancer.
 | Pools | `waxblock-api-mainnet` and `waxblock-api-testnet`, one origin per provider in each |
 | Origin address | your hostname, for example `waxblock-api.<your-domain>` |
 | Host header / SNI sent to you | your hostname (not `waxblock-api.waxblock.io`) |
-| Health monitor | `GET https://<your-hostname>/api/v1/health`, expect `200`, every 60 s, timeout 10 s, 2 retries, from several regions |
+| Health monitor | `GET https://<your-hostname>/api/v1/health`, expect `200`, every 60 s, timeout 10 s, 2 retries, from several regions. Simulate zone: `waxblock.io`, so the monitor presents the Authenticated Origin Pulls certificate |
+| Authenticated Origin Pulls | Enabled on the `waxblock.io` zone: every request to your origin carries Cloudflare's client certificate |
 | Steering | dynamic (lowest latency among healthy origins); an unhealthy origin gets no traffic |
 | Session affinity | cookie, 1 h (safety net; the frontend uses WebSocket only) |
 | Traffic you can expect | measured before the migration: ~45,000 API requests/day on mainnet, ~10,000 on testnet, split across providers |
 
 ## Checklist for a provider
 
-1. Deploy the mainnet and testnet API as described in [DEPLOYMENT.md](DEPLOYMENT.md), at the release tag we
-   give you.
+1. Install the mainnet and testnet API with the guide for your environment
+   ([install/README.md](install/README.md): bare metal, Docker, Kubernetes, AWS), at the release we give you.
 2. Point the endpoints at your own WAX infrastructure where you can ([CONFIGURATION.md](CONFIGURATION.md)).
-3. Serve both on HTTPS with a public certificate for your own hostnames, with WebSocket on `/socket/`.
-4. Restrict HTTPS to Cloudflare IP ranges, and enable Authenticated Origin Pulls with the certificate we send.
-5. Check from outside:
+3. Set up TLS, Cloudflare-only access and Authenticated Origin Pulls
+   ([install/reverse-proxy.md](install/reverse-proxy.md), or the Kubernetes and AWS equivalents).
+4. Check on your host or cluster:
 
    ```sh
-   curl -s https://waxblock-api.<your-domain>/api/v1/health          # expect 200 and "network":"mainnet"
-   curl -s https://waxblock-testnet-api.<your-domain>/api/v1/health  # expect 200 and "network":"testnet"
-   curl -s https://waxblock-api.<your-domain>/api/v1/tokens/stats    # expect a WAX price
+   curl -s http://127.0.0.1:8080/api/v1/health    # 200, "network":"mainnet" (Kubernetes: through port-forward)
+   curl -s http://127.0.0.1:8081/api/v1/health    # 200, "network":"testnet"
+   curl -s http://127.0.0.1:8080/api/v1/tokens/stats   # a WAX price
    ```
 
-6. Send us the **handover information** below.
+   From the internet your hostnames answer `403`: only Cloudflare can reach them. That is correct.
+5. Send us the **handover information** below. We add your origins to the load balancer and confirm that
+   the Cloudflare monitor sees them healthy.
 
 ## Handover information (send to the WaxBlock maintainers)
 

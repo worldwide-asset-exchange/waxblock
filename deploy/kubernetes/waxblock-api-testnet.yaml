@@ -1,34 +1,37 @@
-# WaxBlock API — Kubernetes example (one network). Copy and set NETWORK_TYPE / endpoints for testnet.
-# Expose the Service through your own Ingress or load balancer with TLS and WebSocket support.
+# WaxBlock API — testnet on Kubernetes. See docs/install/kubernetes.md.
+# Mainnet: waxblock-api-mainnet.yaml. Expose both through ingress.yaml or your own load balancer.
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: waxblock-api-mainnet
+  name: waxblock-api-testnet
 data:
-  NETWORK_TYPE: mainnet
+  # Replace the public endpoints with your own nodes where you can (docs/CONFIGURATION.md).
+  NETWORK_TYPE: testnet
   PORT: "8080"
-  BLOCKCHAIN_DEFAULT: https://wax.eosusa.io
-  BLOCKCHAIN_STATE: https://wax.eosusa.io
-  BLOCKCHAIN_BLOCK: https://wax.eosusa.io
-  BLOCKCHAIN_TRANSACTION: https://wax.eosusa.io
-  BLOCKCHAIN_HISTORY: https://wax.eosusa.io
-  LIGHT_API: https://wax.light-api.net
-  ATOMICASSETS: https://wax.api.atomicassets.io
+  BLOCKCHAIN_DEFAULT: https://testnet.waxsweden.org
+  BLOCKCHAIN_STATE: https://testnet.waxsweden.org
+  BLOCKCHAIN_BLOCK: https://testnet.waxsweden.org
+  BLOCKCHAIN_TRANSACTION: https://testnet.waxsweden.org
+  BLOCKCHAIN_HISTORY: https://testnet.waxsweden.org
+  LIGHT_API: https://testnet-lightapi.eosams.xeos.me
+  ATOMICASSETS: https://test.wax.api.atomicassets.io
+  ASSETS_COUNT: "295873953"
+  ASSETS_COUNT_TIMESTAMP: "1658903477000"
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: waxblock-api-mainnet
+  name: waxblock-api-testnet
 spec:
   replicas: 1 # one replica per provider is enough; see docs/DEPLOYMENT.md before scaling out
   strategy:
     type: RollingUpdate
     rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
   selector:
-    matchLabels: { app: waxblock-api-mainnet }
+    matchLabels: { app: waxblock-api-testnet }
   template:
     metadata:
-      labels: { app: waxblock-api-mainnet }
+      labels: { app: waxblock-api-testnet }
     spec:
       securityContext:
         runAsNonRoot: true
@@ -36,9 +39,10 @@ spec:
         fsGroup: 1000
       containers:
         - name: api
-          image: ghcr.io/worldwide-asset-exchange/waxblock-api:v1.3.0
+          # Pin the digest from the release notes: ghcr.io/worldwide-asset-exchange/waxblock-api:<tag>@sha256:<digest>
+          image: ghcr.io/worldwide-asset-exchange/waxblock-api:v1.3.1
           envFrom:
-            - configMapRef: { name: waxblock-api-mainnet }
+            - configMapRef: { name: waxblock-api-testnet }
           ports:
             - { name: http, containerPort: 8080 }
           resources:
@@ -65,13 +69,13 @@ spec:
             capabilities: { drop: ["ALL"] }
       volumes:
         - name: cache
-          emptyDir: {}
+          emptyDir: { sizeLimit: 1Gi } # rebuilt in ~3 min after a restart; use a PVC to keep it warm
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: waxblock-api-mainnet
+  name: waxblock-api-testnet
 spec:
-  selector: { app: waxblock-api-mainnet }
+  selector: { app: waxblock-api-testnet }
   ports:
     - { name: http, port: 80, targetPort: http }
