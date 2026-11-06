@@ -15,6 +15,9 @@ const app = express();
 app.use(morgan.successHandler);
 app.use(morgan.errorHandler);
 
+// Refuse requests that did not come through the WaxBlock Cloudflare zone (when ORIGIN_AUTH_KEY is set)
+app.use(originAuth.httpMiddleware);
+
 // parse json request body
 app.use(express.json());
 
@@ -27,9 +30,6 @@ app.use(xss());
 // enable cors
 app.use(cors());
 app.options("*", cors());
-
-// Refuse requests that did not come through the WaxBlock Cloudflare zone (when ORIGIN_AUTH_KEY is set)
-app.use(originAuth.httpMiddleware);
 
 // All routes
 app.use(routes);

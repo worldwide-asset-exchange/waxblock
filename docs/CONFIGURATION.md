@@ -10,7 +10,8 @@ the environment take precedence). Ready-made files: [`deploy/env/mainnet.env`](.
 |---|---|---|---|
 | `NETWORK_TYPE` | yes | `mainnet` | `mainnet` or `testnet`. Selects chain constants and the cache sub-directory. |
 | `PORT` | no | `8080` | HTTP and WebSocket listen port. |
-| `ORIGIN_AUTH_KEY` | yes, for providers | — | Secret value of the `X-WaxBlock-Origin-Auth` header that only our Cloudflare zone sends. When set, `/api/` and `/socket/` refuse requests without it (`403`); `/api/v1/health` and `/api/v1/test` stay open. Unset = no check (local development). See [install/reverse-proxy.md](install/reverse-proxy.md#the-origin-key). |
+| `ORIGIN_AUTH_KEY` | yes, for providers | — | Secret value of the `X-WaxBlock-Origin-Auth` header that only our Cloudflare zone sends. At least 32 printable ASCII characters. When set, every request except `/api/v1/health` and `/api/v1/test` needs it (`403` otherwise), including every socket.io request. With `NODE_ENV=production` (the container image and the systemd unit set it) the API **refuses to start** without it. See [install/reverse-proxy.md](install/reverse-proxy.md#the-origin-key). |
+| `ORIGIN_AUTH` | no | — | `off` lets a production instance start without `ORIGIN_AUTH_KEY`, with no origin check. Only for an instance that is not behind the WaxBlock Cloudflare zone. |
 | `BIND_ADDRESS` | no | all interfaces | Listen address. Bare-metal installs use `127.0.0.1` so that only the local reverse proxy can connect. Leave it unset in containers. |
 | `HOST` | no | `127.0.0.1` | Public base URL of this API (informational). |
 | `BLOCKCHAIN_DEFAULT` | **yes** | `http://127.0.0.1:8888` | Chain RPC (nodeos `chain_api_plugin`). Also used by `/health`. The old name `BLOCKCHAIN_DEAFULT` is still accepted. |

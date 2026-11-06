@@ -30,6 +30,8 @@ curl -s http://127.0.0.1:8080/api/v1/health | jq
 | `EACCES` on the cache directory | The process (uid 1000 in the image, `waxblock` on bare metal) cannot write the cache. | Docker: use the named volume from the Compose file. Kubernetes: keep `fsGroup: 1000`. Bare metal: do not set `CACHE_DIR` yourself; the unit uses `/var/lib/waxblock`. |
 | `EISDIR: illegal operation on a directory` | The cache directory contains a sub-directory. The cache library reads every entry as a file. | Stop the process, empty `<CACHE_DIR>/<network>/`, start again. Point `CACHE_DIR` at the parent directory only; the API adds the network name. |
 | Pod `CreateContainerConfigError: container has runAsNonRoot and image has non-numeric user` | Old image. | Use v1.3.0 or later. |
+| Exits at once: `ORIGIN_AUTH_KEY is not set` | Production mode requires the origin key. | Add `ORIGIN_AUTH_KEY` to the instance's environment ([reverse-proxy.md](reverse-proxy.md#the-origin-key)). |
+| Exits at once: `ORIGIN_AUTH_KEY must be at least 32 printable ASCII characters` | The value is truncated, quoted or has spaces. | Copy the value again exactly as we sent it, without quotes. |
 | `EADDRINUSE` | Mainnet and testnet use the same port on one host. | Bare metal: testnet uses `PORT=8081` ([bare-metal.md](bare-metal.md#5-configuration)). |
 
 ## Requests through Cloudflare fail
@@ -39,7 +41,7 @@ curl -s http://127.0.0.1:8080/api/v1/health | jq
 | nginx access log shows `403` for Cloudflare addresses | The Cloudflare IP list is missing or old. | Run `sudo /usr/local/sbin/waxblock-update-cloudflare-ips`. Check `/etc/nginx/waxblock/cloudflare-geo.conf` is not empty. |
 | Every request shows the same internal address (Kubernetes) | The ingress controller does not see the peer address. | Set `externalTrafficPolicy: Local` or enable PROXY protocol ([kubernetes.md](kubernetes.md#5-ingress-tls-and-access)). |
 | The API answers `403` to `/api/` requests from Cloudflare | The origin key is wrong or missing on one side. | Compare `ORIGIN_AUTH_KEY` in both instances with the value we sent (no quotes, no spaces). Restart after a change. Tell us if it matches. |
-| The startup log shows `Origin authentication: off` | `ORIGIN_AUTH_KEY` is not set. | Add it to the instance's environment ([reverse-proxy.md](reverse-proxy.md#the-origin-key)). |
+
 | The site works, but the live block feed does not update | The WebSocket on `/socket/` is closed by a proxy. | Check that your proxy passes `Upgrade`/`Connection` and has an idle timeout of at least 100 s (ALB: `idle_timeout.timeout_seconds`). |
 
 ## Stopping and restarting

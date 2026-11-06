@@ -5,6 +5,13 @@ const http = require("http");
 const https = require("https");
 const socket = require("./socket");
 const crons = require("./crons");
+const originAuth = require("./middlewares/originAuth");
+
+const startupProblem = originAuth.startupProblem();
+if (startupProblem) {
+  logger.error(startupProblem);
+  process.exit(1);
+}
 var globals = require("node-global-storage");
 var storage = require("node-persist");
 
@@ -55,7 +62,7 @@ var cacheStorage = storage.create({ dir: `${config.cache_dir}/${config.network_t
   server = http.createServer(app);
   server.listen(config.port, config.bind_address, function () {
     logger.info(`Express App and Socket Listening to ${config.bind_address || "all interfaces"} port ${config.port}`);
-    logger.info(`Origin authentication: ${config.origin_auth_key ? "on" : "off (ORIGIN_AUTH_KEY not set)"}`);
+    logger.info(`Origin authentication: ${config.origin_auth_key ? "on" : "off"}`);
 
     crons.createCronJobs();
   });

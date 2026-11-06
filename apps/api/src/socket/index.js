@@ -9,11 +9,13 @@ const createServer = (server) => {
   io = socketIO(server, {
     path: "/socket",
     allowRequest: originAuth.allowSocketRequest,
+    serveClient: false,
     cors: {
       origin: "*",
     },
   });
 
+  io.engine.use(originAuth.engineMiddleware);
   io.on("connection", onConnection);
 
   return io;

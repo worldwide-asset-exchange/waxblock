@@ -26,8 +26,10 @@ We send the origin key to each provider privately (not in GitHub, not in chat). 
 ORIGIN_AUTH_KEY=<the value we send you>
 ```
 
-Without it the API accepts every request; the startup log shows `Origin authentication: off`. When we
-rotate the key, we send the new value and give a date; update both instances and restart them.
+The container image and the systemd unit run with `NODE_ENV=production`; in that mode the API refuses to
+start without the key (`ORIGIN_AUTH_KEY is not set` in the log). The startup log shows
+`Origin authentication: on` when it is set. When we rotate the key, we send the new value and give a date;
+update both instances and restart them.
 
 ## What the shipped nginx configuration does
 
@@ -36,7 +38,7 @@ Files in [`deploy/nginx/`](../../deploy/nginx/). Tested with nginx 1.24.
 | Request | Result |
 |---|---|
 | From an address outside Cloudflare's ranges (and not from the host itself) | `403` |
-| `/api/...` and `/socket/...` from Cloudflare | Passed to the API with `Host`, `X-Forwarded-For` (the user's address from `CF-Connecting-IP`) and `X-Forwarded-Proto` |
+| `/api/...` and `/socket/...` from Cloudflare | Passed to the API (which checks the origin key) with `Host`, `X-Forwarded-For` (the user's address from `CF-Connecting-IP`) and `X-Forwarded-Proto` |
 | WebSocket upgrade on `/socket/` | `101`, idle timeout 300 s |
 | Any other path | `404` |
 | Port 80 | Let's Encrypt challenges; everything else redirects to HTTPS |
@@ -119,9 +121,10 @@ D=waxblock-api.<your-domain>
 curl -s --resolve "$D:443:127.0.0.1" "https://$D/api/v1/health"     # "status":"ok"
 curl -s -o /dev/null -w '%{http_code}\n' --resolve "$D:443:127.0.0.1" "https://$D/api/v1/producers"
 # 403: no origin key, as expected
-curl -s -o /dev/null -w '%{http_code}\n' --resolve "$D:443:127.0.0.1" \
-  -H "X-WaxBlock-Origin-Auth: $(sudo sed -n 's/^ORIGIN_AUTH_KEY=//p' /etc/waxblock/mainnet.env)" \
-  "https://$D/api/v1/producers"                                      # 200
+sudo sed -n 's/^ORIGIN_AUTH_KEY=/X-WaxBlock-Origin-Auth: /p' /etc/waxblock/mainnet.env \
+  | curl -s -o /dev/null -w '%{http_code}\n' --resolve "$D:443:127.0.0.1" -H @- \
+  "https://$D/api/v1/producers"                                      # 200 (the key is read from stdin,
+                                                                     # not shown in the process list)
 ```
 
 (On a Docker install read the key from `/opt/waxblock/env/mainnet.env`.)
