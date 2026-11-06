@@ -9,6 +9,10 @@ const config = {
     env: process.env.NODE_ENV || "production",
     host: process.env.HOST || "127.0.0.1",
     port: process.env.PORT || 8080,
+    // Listen address. Unset = all interfaces (containers). Bare-metal installs set 127.0.0.1 so that only
+    // the local reverse proxy can reach the API.
+    bind_address: process.env.BIND_ADDRESS || undefined,
+    origin_auth_key: process.env.ORIGIN_AUTH_KEY || "",
     network: isTestnet ? "waxtest" : "wax",
     network_type: isTestnet ? "testnet" : "mainnet",
     cache_dir: process.env.CACHE_DIR || "cache",

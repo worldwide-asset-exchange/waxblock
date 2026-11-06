@@ -10,6 +10,9 @@ the environment take precedence). Ready-made files: [`deploy/env/mainnet.env`](.
 |---|---|---|---|
 | `NETWORK_TYPE` | yes | `mainnet` | `mainnet` or `testnet`. Selects chain constants and the cache sub-directory. |
 | `PORT` | no | `8080` | HTTP and WebSocket listen port. |
+| `ORIGIN_AUTH_KEY` | yes, for providers | — | Secret value of the `X-WaxBlock-Origin-Auth` header that only our Cloudflare zone sends. At least 32 printable ASCII characters. When set, every request except `/api/v1/health` and `/api/v1/test` needs it (`403` otherwise), including every socket.io request. With `NODE_ENV=production` (the container image and the systemd unit set it) the API **refuses to start** without it. See [install/reverse-proxy.md](install/reverse-proxy.md#the-origin-key). |
+| `ORIGIN_AUTH` | no | — | `off` lets a production instance start without `ORIGIN_AUTH_KEY`, with no origin check. Only for an instance that is not behind the WaxBlock Cloudflare zone. |
+| `BIND_ADDRESS` | no | all interfaces | Listen address. Bare-metal installs use `127.0.0.1` so that only the local reverse proxy can connect. Leave it unset in containers. |
 | `HOST` | no | `127.0.0.1` | Public base URL of this API (informational). |
 | `BLOCKCHAIN_DEFAULT` | **yes** | `http://127.0.0.1:8888` | Chain RPC (nodeos `chain_api_plugin`). Also used by `/health`. The old name `BLOCKCHAIN_DEAFULT` is still accepted. |
 | `BLOCKCHAIN_STATE` | yes | as above | RPC used for table reads. |
@@ -20,13 +23,15 @@ the environment take precedence). Ready-made files: [`deploy/env/mainnet.env`](.
 | `ATOMICASSETS` | yes | `http://127.0.0.1:8600` | AtomicAssets API. |
 | `SIMPLEASSETS` | no | — | SimpleAssets API (optional, legacy). |
 | `ASSETS_COUNT`, `ASSETS_COUNT_TIMESTAMP` | no | built-in | Seed values for the NFT counter before the first AtomicAssets poll. |
-| `CACHE_DIR` | no | `cache` (relative to `apps/api`) | Where the warm cache is persisted. |
+| `CACHE_DIR` | no | `cache` (relative to `apps/api`) | Parent directory of the warm cache. The API adds the network name (`<CACHE_DIR>/mainnet`). That directory must contain only cache files. |
 | `HEALTH_MAX_HEAD_AGE_SECONDS` | no | `60` | `/health` fails when the RPC head block is older than this. |
 | `APP_VERSION` | no | set by the image | Reported by `/health`. |
 
 **Use your own nodes.** Infrastructure providers should point all endpoints at their own WAX nodes and
 history services. The public endpoints in the example files are a fallback. Each API instance makes about one
 RPC request per second per endpoint type while users are connected.
+
+### Outbound access
 
 Outbound internet access is also required to: `api.coingecko.com`, `wax.alcor.exchange`,
 `raw.githubusercontent.com`, `www.alohaeos.com`, and every producer's `bp.json` host.

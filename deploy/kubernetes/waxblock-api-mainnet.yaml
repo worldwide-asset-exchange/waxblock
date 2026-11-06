@@ -1,5 +1,5 @@
-# WaxBlock API — Kubernetes example (one network). Copy and set NETWORK_TYPE / endpoints for testnet.
-# Expose the Service through your own Ingress or load balancer with TLS and WebSocket support.
+# WaxBlock API — mainnet on Kubernetes. See docs/install/kubernetes.md.
+# Testnet: waxblock-api-testnet.yaml. Expose both through ingress.yaml or your own load balancer.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -7,6 +7,7 @@ metadata:
 data:
   NETWORK_TYPE: mainnet
   PORT: "8080"
+  # Replace the public endpoints with your own nodes where you can (docs/CONFIGURATION.md).
   BLOCKCHAIN_DEFAULT: https://wax.eosusa.io
   BLOCKCHAIN_STATE: https://wax.eosusa.io
   BLOCKCHAIN_BLOCK: https://wax.eosusa.io
@@ -14,6 +15,8 @@ data:
   BLOCKCHAIN_HISTORY: https://wax.eosusa.io
   LIGHT_API: https://wax.light-api.net
   ATOMICASSETS: https://wax.api.atomicassets.io
+  ASSETS_COUNT: "461118992"
+  ASSETS_COUNT_TIMESTAMP: "1765252639411"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -36,9 +39,11 @@ spec:
         fsGroup: 1000
       containers:
         - name: api
-          image: ghcr.io/worldwide-asset-exchange/waxblock-api:v1.3.0
+          # Pin the digest from the release notes: ghcr.io/worldwide-asset-exchange/waxblock-api:<tag>@sha256:<digest>
+          image: ghcr.io/worldwide-asset-exchange/waxblock-api:v1.3.1
           envFrom:
             - configMapRef: { name: waxblock-api-mainnet }
+            - secretRef: { name: waxblock-origin-auth } # ORIGIN_AUTH_KEY, see docs/install/kubernetes.md
           ports:
             - { name: http, containerPort: 8080 }
           resources:
@@ -65,7 +70,7 @@ spec:
             capabilities: { drop: ["ALL"] }
       volumes:
         - name: cache
-          emptyDir: {}
+          emptyDir: { sizeLimit: 1Gi } # rebuilt in ~3 min after a restart; use a PVC to keep it warm
 ---
 apiVersion: v1
 kind: Service
