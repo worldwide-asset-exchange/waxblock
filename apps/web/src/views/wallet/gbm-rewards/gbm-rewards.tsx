@@ -8,6 +8,12 @@ import BlockchainApiManager from "../../../app/services/blockchainApiManager";
 import Countdown from "react-countdown";
 import { dateToISO, momentformat } from "../../../app/utilities/date";
 import { tokenFormat } from "../../../app/utilities/format";
+import { useQuery } from "@tanstack/react-query";
+import { APIClient } from "@wharfkit/antelope";
+import {
+  calculateVoterFunding,
+  fetchWaxInflationPolicy,
+} from "../../../app/services/waxInflation";
 
 function stringToBigInt(value) {
   return BigInt(value.toString().split(".")[0]);
@@ -58,6 +64,14 @@ const GbmRewards = () => {
   const [genesis, setGenesis] = useState(null);
   const [voters, setVoters] = useState(null);
   const [nextGenesisRewards, setNextGenesisRewards] = useState(0);
+  const { data: inflationPolicy, isError: policyError } = useQuery({
+    queryKey: ["waxInflationPolicy", config.chain_id, config.endpoints.default],
+    queryFn: () =>
+      fetchWaxInflationPolicy(new APIClient({ url: config.endpoints.default })),
+    enabled: Boolean(session),
+    staleTime: 24 * 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
+  });
   const toDate = (value) => new Date(dateToISO(value) || value);
   /* global BigInt */
 
@@ -117,6 +131,7 @@ const GbmRewards = () => {
   };
 
   const nextVotersRewards = useMemo(() => {
+    if (!inflationPolicy || policyError) return null;
     let voter_info =
       walletAccount && walletAccount.account
         ? { ...walletAccount.account.voter_info }
@@ -135,19 +150,12 @@ const GbmRewards = () => {
     const WAX_DECIMAL_PLACES = Math.pow(10, 8);
     const multiplierSmallInt = Math.pow(10, 12);
     const multiplier = BigInt(multiplierSmallInt);
-    // fill_buckets...
-    const continuous_rate = 0.04879;
-    const useconds_per_year = BigInt(365 * 24 * 60 * 60 * 1000000);
     const usecs_since_last_fill = ct - _gstate.last_pervote_bucket_fill;
-    const new_tokens = Math.floor(
-      (continuous_rate *
-        token_supply *
-        parseFloat((usecs_since_last_fill * multiplier) / useconds_per_year)) /
-        multiplierSmallInt,
+    const to_voters = calculateVoterFunding(
+      token_supply * WAX_DECIMAL_PLACES,
+      Number(usecs_since_last_fill) / 1_000_000,
+      inflationPolicy,
     );
-
-    const to_voters =
-      (BigInt(new_tokens) * BigInt(WAX_DECIMAL_PLACES)) / BigInt(6);
     _gstate.voters_bucket += to_voters;
     _gstate.total_unpaid_voteshare +=
       (_gstate.total_voteshare_change_rate *
@@ -174,7 +182,7 @@ const GbmRewards = () => {
     reward = parseFloat(reward) / WAX_DECIMAL_PLACES;
 
     return reward;
-  }, [walletAccount, global, currencyStats]);
+  }, [walletAccount, global, currencyStats, inflationPolicy, policyError]);
 
   const nextGenesisClaimDate = addMonths(new Date(), 1).getTime();
 
@@ -335,8 +343,9 @@ const GbmRewards = () => {
                   </p>
                   <p>
                     <strong>Next Voter Rewards:</strong>&nbsp;{" "}
-                    {tokenFormat(nextVotersRewards > 0 ? nextVotersRewards : 0)}{" "}
-                    WAX
+                    {nextVotersRewards === null
+                      ? "Unavailable"
+                      : `${tokenFormat(Math.max(0, nextVotersRewards))} WAX`}
                   </p>
                 </>
               ) : (
