@@ -13,7 +13,10 @@ import config from "../config";
 import {
   NetworkEndpoints,
   resolveNetworkEndpoints,
+  ENDPOINT_CHANGE_EVENT,
+  endpointSettings,
 } from "../utilities/network-endpoints";
+import { ensureHealthyEndpoint } from "../services/endpointHealth";
 import { useLocation, useNavigate } from "react-router";
 import { SessionKit, Session, SerializedSession } from "@wharfkit/session";
 import { WebRenderer } from "@wharfkit/web-renderer";
@@ -256,6 +259,32 @@ const WalletContextProvider = ({ children }: { children: React.ReactNode }) => {
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const syncEndpoints = () => setNetworkEndpoints(resolveNetworkEndpoints());
+    window.addEventListener(ENDPOINT_CHANGE_EVENT, syncEndpoints);
+    return () =>
+      window.removeEventListener(ENDPOINT_CHANGE_EVENT, syncEndpoints);
+  }, [setNetworkEndpoints]);
+
+  useEffect(() => {
+    if (config.network_type === "localnet") return;
+    const controller = new AbortController();
+    const checkSelected = () => {
+      if (document.visibilityState === "hidden") return;
+      for (const { key } of endpointSettings) {
+        void ensureHealthyEndpoint(key, controller.signal).catch(() => {});
+      }
+    };
+    checkSelected();
+    const interval = window.setInterval(checkSelected, 60000);
+    window.addEventListener("online", checkSelected);
+    return () => {
+      controller.abort();
+      window.clearInterval(interval);
+      window.removeEventListener("online", checkSelected);
+    };
+  }, []);
 
   const hasRestoredSessionRef = useRef(false);
 
