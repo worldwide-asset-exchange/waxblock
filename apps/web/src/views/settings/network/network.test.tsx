@@ -34,10 +34,80 @@ beforeEach(() => {
     "https://ipfs.filebase.io/ipfs/,https://gateway.pinata.cloud/ipfs/",
   );
   localStorage.clear();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            chain_id: "test-chain",
+            head_block_num: 123,
+            health: [{ status: "OK" }],
+          }),
+        ),
+    ),
+  );
   setNetworkEndpoints.mockClear();
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
+});
+
+test("shows latency and tracks an automatic endpoint change", async () => {
+  const { selectEndpoint } =
+    await import("../../../app/utilities/network-endpoints");
+  await act(async () => root.render(<Network />));
+  const select = container.querySelector<HTMLButtonElement>("#ipfs-endpoint")!;
+  expect(select.textContent).toMatch(/\d+ ms/);
+  await act(async () =>
+    selectEndpoint("ipfs", "https://gateway.pinata.cloud/ipfs/"),
+  );
+  expect(select.textContent).toContain("gateway.pinata.cloud");
+});
+
+test("updates the dropdown and saved selection when its selected endpoint fails", async () => {
+  vi.stubEnv(
+    "VITE_RPC_ENDPOINTS",
+    "https://offline.example,https://healthy.example",
+  );
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      async (url: string) =>
+        new Response(
+          JSON.stringify({
+            chain_id: "test-chain",
+            head_block_num: 123,
+          }),
+          { status: url.startsWith("https://offline.example") ? 503 : 200 },
+        ),
+    ),
+  );
+  await act(async () => root.render(<Network />));
+  const select = container.querySelector<HTMLButtonElement>("#rpc-endpoint")!;
+  expect(select.textContent).toContain("healthy.example");
+  expect(select.textContent).toMatch(/\d+ ms/);
+  await act(async () => select.click());
+  const options = document.querySelectorAll('[role="option"]');
+  expect(options[0].textContent).toContain("Unavailable");
+  expect(
+    options[0].querySelector(".endpoint-metrics.endpoint-unavailable"),
+  ).not.toBeNull();
+  expect(options[1].textContent).toMatch(/\d+ ms/);
+  expect(localStorage.getItem("settings_network_rpc")).toBe("1");
+});
+
+test("reports that no healthy alternatives are available", async () => {
+  vi.stubEnv("VITE_RPC_ENDPOINTS", "https://all-down.example");
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response("Offline", { status: 503 })),
+  );
+  await act(async () => root.render(<Network />));
+  expect(container.textContent).toContain("No healthy endpoints available.");
+  expect(container.querySelector("#rpc-endpoint")?.textContent).toContain(
+    "all-down.example",
+  );
 });
 
 afterEach(async () => {
@@ -61,14 +131,15 @@ test("changing the IPFS selection updates media URLs and persists across remount
   };
 
   await act(async () => renderSettings());
-  const select = container.querySelector<HTMLSelectElement>("#ipfs-endpoint")!;
+  const select = container.querySelector<HTMLButtonElement>("#ipfs-endpoint")!;
   expect(select.labels?.[0]?.textContent).toBe("IPFS Endpoint");
-  expect(select.options.length).toBe(2);
-  expect(select.value).toBe("0");
+  expect(select.textContent).toContain("ipfs.filebase.io");
+  await act(async () => select.click());
+  const options = document.querySelectorAll<HTMLElement>('[role="option"]');
+  expect(options.length).toBe(2);
 
   await act(async () => {
-    select.value = "1";
-    select.dispatchEvent(new Event("change", { bubbles: true }));
+    options[1].click();
   });
 
   expect(setNetworkEndpoints).toHaveBeenCalledWith(
@@ -82,7 +153,7 @@ test("changing the IPFS selection updates media URLs and persists across remount
 
   await act(async () => root.render(null));
   await act(async () => renderSettings());
-  expect(
-    container.querySelector<HTMLSelectElement>("#ipfs-endpoint")?.value,
-  ).toBe("1");
+  expect(container.querySelector("#ipfs-endpoint")?.textContent).toContain(
+    "gateway.pinata.cloud",
+  );
 });

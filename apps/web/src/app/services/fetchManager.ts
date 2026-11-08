@@ -1,206 +1,156 @@
-import Chance from "chance";
+import config from "../config";
+import {
+  getEndpointLists,
+  resolveNetworkEndpoints,
+  selectEndpoint,
+  type EndpointKind,
+} from "../utilities/network-endpoints";
+import { findHealthyEndpoint, markEndpointFailed } from "./endpointHealth";
 
 class CustomError extends Error {
-  data: unknown;
-  constructor(data: unknown = null, ...args: ConstructorParameters<typeof Error>) {
-    super(...args);
-    this.data = data;
+  constructor(
+    public data: unknown,
+    message: string,
+  ) {
+    super(message);
   }
 }
 
-const getTimeoutPromise = <T>(
-  ms: number,
-  promise: Promise<T>,
-  signal?: AbortSignal,
-) => {
-  return new Promise<T>((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(signal.reason ?? new DOMException("Aborted", "AbortError"));
-      return;
-    }
-
-    const timeoutId = setTimeout(() => {
-      reject(new CustomError(null, "Timeout"));
-    }, ms);
-
-    const onAbort = () => {
-      clearTimeout(timeoutId);
-      reject(signal?.reason ?? new DOMException("Aborted", "AbortError"));
-    };
-
-    signal?.addEventListener("abort", onAbort, { once: true });
-
-    promise.then(
-      (value) => {
-        clearTimeout(timeoutId);
-        signal?.removeEventListener("abort", onAbort);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timeoutId);
-        signal?.removeEventListener("abort", onAbort);
-        reject(error);
-      },
-    );
-  });
-};
+type Endpoints = string | string[] | Record<string, number>;
+interface FetchParams {
+  path?: string;
+  params?: Record<string, string>;
+  timeout?: number;
+  retries?: number;
+  method?: string;
+  data?: unknown;
+  body?: BodyInit;
+  headers?: HeadersInit;
+  signal?: AbortSignal;
+}
 
 const FetchManager = {
-  get(endpoints, params) {
-    return this.fetchRetry(endpoints, {
-      method: "GET",
-      ...params,
-    });
+  get(endpoints: Endpoints, params: FetchParams) {
+    return this.fetchRetry(endpoints, { ...params, method: "GET" });
   },
-  post(endpoints, params) {
+  post(endpoints: Endpoints, params: FetchParams) {
     return this.fetchRetry(endpoints, {
+      ...params,
       method: "POST",
       body: JSON.stringify(params.data),
-      headers: {
-        //"Content-Type": "application/json",
-        ...params.headers,
-      },
-      ...params,
     });
   },
-  fetchRetry(endpoints, params) {
-    if (!params.path) params.path = "";
-    if (!params.params) params.params = {};
-    if (!params.timeout) params.timeout = 10000;
-    if (params.retries === undefined) params.retries = 5;
-
-    let endpoint;
-    //if (params.timeout_endpoint) {
-    // endpoint = params.timeout_endpoint;
-    //} else
-    if (typeof endpoints === "object") {
-      if (Array.isArray(endpoints) && endpoints.length > 0) {
-        endpoint = endpoints[Math.floor(Math.random() * endpoints.length)];
-      } else if (Object.keys(endpoints).length > 0) {
-        endpoint = Chance().weighted(
-          Object.keys(endpoints),
-          Object.values(endpoints),
-        );
-      } else {
-        return Promise.reject(new Error("Invalid endpoints"));
-      }
-    } else {
-      endpoint = endpoints;
-    }
-
-    let url = `${endpoint}${params.path}`;
-
-    if (Object.keys(params.params).length) {
-      url +=
-        "?" +
-        new URLSearchParams({
-          ...params.params,
+  async fetchRetry(endpoints: Endpoints, params: FetchParams) {
+    const supplied =
+      typeof endpoints === "string"
+        ? [endpoints]
+        : Array.isArray(endpoints)
+          ? [...endpoints]
+          : Object.keys(endpoints);
+    if (!supplied.length || !supplied[0]) throw new Error("Invalid endpoints");
+    const path = params.path || "";
+    const lists = getEndpointLists();
+    const kind: EndpointKind | undefined =
+      config.network_type === "localnet"
+        ? undefined
+        : path.startsWith("/v1/chain/get_")
+          ? "rpc"
+          : path.startsWith("/v2/")
+            ? "historyV2"
+            : path.startsWith("/api/")
+              ? "lightApi"
+              : path.startsWith("/atomicassets/")
+                ? "atomic"
+                : undefined;
+    const configured = new Set(kind ? lists[kind] : []);
+    const managed =
+      kind && supplied.every((endpoint) => configured.has(endpoint))
+        ? kind
+        : undefined;
+    const readOnly =
+      params.method === "GET" ||
+      (params.method === "POST" && path.startsWith("/v1/chain/get_"));
+    const selected = managed
+      ? resolveNetworkEndpoints()[`${managed}Endpoint`]
+      : undefined;
+    let endpoint = selected || supplied[0];
+    const original = endpoint;
+    const attempted = new Set<string>();
+    for (let attempt = 0; ; attempt++) {
+      params.signal?.throwIfAborted();
+      attempted.add(endpoint);
+      let url = `${endpoint.replace(/\/+$/, "")}${path}`;
+      if (params.params && Object.keys(params.params).length)
+        url += `${url.includes("?") ? "&" : "?"}${new URLSearchParams(params.params)}`;
+      const controller = new AbortController();
+      const timer = setTimeout(
+        () => controller.abort(),
+        params.timeout ?? 10000,
+      );
+      const signal = params.signal
+        ? AbortSignal.any([params.signal, controller.signal])
+        : controller.signal;
+      let retryable = true;
+      try {
+        const response = await fetch(url, {
+          method: params.method,
+          headers: params.headers,
+          body: params.body,
+          signal,
         });
-    }
-
-    const fetchInit: RequestInit = {
-      method: params.method,
-      headers: params.headers,
-      body: params.body,
-      signal: params.signal,
-    };
-
-    return getTimeoutPromise(
-      params.timeout,
-      fetch(url, fetchInit),
-      params.signal,
-    )
-      .then((res: Response) => {
-        const { status } = res;
-
-        switch (status) {
-          case 200: {
-            return res.json() as Promise<unknown>;
-            break;
-          }
-          case 500: {
-            throw new CustomError({ res, status }, "Server");
-            break;
-          }
-          case 404: {
-            throw new CustomError({ res, status }, "MethodNotFound");
-            break;
-          }
-          case 400: {
-            throw new CustomError({ res, status }, "BadRequest");
-            break;
-          }
-          case 408:
-          case 504: {
-            throw new CustomError({ res, status }, "Timeout");
-            break;
-          }
-          default: {
-            throw new CustomError({ res, status }, "Unknown");
-          }
-        }
-      })
-      .then((resJSON) => {
-        return resJSON;
-      })
-      .catch((error) => {
-        if (error?.name === "AbortError") {
-          throw error;
-        }
-
-        const { data, message } = error;
-
-        //if (message !== "Timeout") {
-        delete endpoints[endpoint]; //Remove endpoints from list
-        //}
-
-        if (Object.keys(endpoints).length === 0) {
-          //Throw error if not endpoints to process
-          throw error;
-        } else if (params.retries > 0 && !params.signal?.aborted) {
-          //Check if retry attempts exists
-          return this.fetchRetry(
-            endpoints,
-            Object.assign({}, params, {
-              retries: params.retries - 1,
-              timeout:
-                message === "Timeout" ? params.timeout + 1000 : params.timeout,
-              //timeout_endpoint: message === "Timeout" ? endpoint : null
-            }),
+        if (!response.ok) {
+          retryable =
+            response.status === 408 ||
+            response.status === 429 ||
+            response.status >= 500;
+          const body = await response.json().catch(() => null);
+          // Chain assertion errors describe the request, not an unhealthy node.
+          if (
+            managed === "rpc" &&
+            body?.error &&
+            typeof body.error === "object"
+          )
+            retryable = false;
+          const message =
+            response.status === 400
+              ? "BadRequest"
+              : response.status === 404
+                ? "MethodNotFound"
+                : response.status === 408 || response.status === 504
+                  ? "Timeout"
+                  : response.status >= 500
+                    ? "Server"
+                    : "Unknown";
+          throw new CustomError(
+            { res: response, status: response.status, ...body },
+            message,
           );
-        } else {
-          //Handle final Error messages
-          if (message === "Timeout") {
-            //   if (params.retries > 0) {
-            //     return this.fetch(
-            //       endpoints,
-            //       Object.assign({}, params, {
-            //         retries: params.retries - 1,
-            //         timeout: params.timeout + 1000,
-            //       })
-            //     );
-            //   } else {
-            throw error;
-            //}
-          } else if (message === "Server") {
-            // thrown in getTimeoutPromise()'s first .then(..)
-            return data.res.json().then((errorJSON) => {
-              const { response } = errorJSON;
-              const { errorFull } = response || { errorFull: {} };
-              const { file, line, message } = errorFull;
-              // throw new CustomError ({...data, file, line, message}, "Server")
-              throw new CustomError(
-                Object.assign({}, data, { file, line, message }),
-                "Server",
-              );
-            });
-          } else if (!data) {
-            throw new CustomError({}, "NetworkRequestFailed");
-          } else {
-            throw error;
-          }
         }
-      });
+        const data = await response.json();
+        params.signal?.throwIfAborted();
+        if (managed && endpoint !== original)
+          selectEndpoint(managed, endpoint, original);
+        return data;
+      } catch (error) {
+        if (params.signal?.aborted) throw params.signal.reason;
+        if (!readOnly || !retryable) throw error;
+        if (managed) markEndpointFailed(managed, endpoint);
+        if (attempt >= (params.retries ?? 5)) throw error;
+        clearTimeout(timer);
+        const next = managed
+          ? await findHealthyEndpoint(
+              managed,
+              endpoint,
+              attempted,
+              params.signal,
+            )
+          : supplied.find((candidate) => !attempted.has(candidate));
+        if (!next) throw error;
+        endpoint = next;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
   },
 };
 

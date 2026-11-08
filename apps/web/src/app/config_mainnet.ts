@@ -16,7 +16,7 @@ const config_mainnet = {
       "https://history.waxsweden.org",
     ]),
     lightapi: endpointWeights(import.meta.env.VITE_LIGHTAPI_ENDPOINTS, [
-      "https://lightapi.waxnet.io",
+      "https://wax.light-api.net",
     ]),
     nfts: {
       simpleassets: import.meta.env.VITE_SIMPLEASSETS || null,
