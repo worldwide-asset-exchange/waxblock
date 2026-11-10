@@ -22,8 +22,9 @@
 #   variable  PAGES_PROJECT           Pages project name (default: waxblock)
 #   secret    CLOUDFLARE_API_TOKEN    token scoped to "Account / Cloudflare Pages / Edit". Store it as an
 #                                     ENVIRONMENT secret of `preview` (deployment branch: main) and
-#                                     `production` (deployment tags: v*), never as a repository secret,
-#                                     so a workflow on any other branch cannot read it.
+#                                     `production` (deployment branch: main, tags: v*; required reviewers,
+#                                     prevent self-review), never as a repository secret, so a workflow on
+#                                     any other branch cannot read it.
 #   variable  PAGES_DOMAINS           comma-separated custom domains to attach to the Pages project
 #                                     (e.g. waxblock.io); the DNS record is managed in the zone itself
 #   variable  PAGES_PROJECT_TESTNET   Pages project for the testnet build (e.g. waxblock-testnet)
@@ -58,8 +59,10 @@ on:
 permissions:
   contents: read
 
+# A production run that waits for approval holds its group, so it gets its own group: it must not block
+# main's preview deploys, and a preview dispatch must not replace it.
 concurrency:
-  group: deploy-${{ github.ref }}
+  group: deploy-${{ github.ref }}-${{ inputs.target || 'auto' }}
   cancel-in-progress: false
 
 env:
@@ -155,7 +158,7 @@ jobs:
   pages-domains:
     name: pages-domains (${{ matrix.network }})
     needs: pages
-    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.target == 'production')
     runs-on: ubuntu-latest
     environment: ${{ (startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.target == 'production')) && 'production' || 'preview' }}
     strategy:
