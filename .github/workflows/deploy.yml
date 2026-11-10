@@ -6,8 +6,7 @@
 #   manual run      "Run workflow" on main: target=preview (default) or target=production. A production run
 #                   deploys the FRONTEND ONLY; the API images are built only from a release tag.
 #
-# The `production` environment admits only refs main and v* tags, and requires a maintainer's approval
-# (not the person who started the run) before the job can read CLOUDFLARE_API_TOKEN.
+# The `production` environment admits only refs main and v* tags. It has no required reviewers.
 #
 # The frontend is built once per network: mainnet into PAGES_PROJECT, testnet into PAGES_PROJECT_TESTNET,
 # localnet (the explorer for a user's own local chain; no API) into PAGES_PROJECT_LOCALNET. The testnet
@@ -22,9 +21,8 @@
 #   variable  PAGES_PROJECT           Pages project name (default: waxblock)
 #   secret    CLOUDFLARE_API_TOKEN    token scoped to "Account / Cloudflare Pages / Edit". Store it as an
 #                                     ENVIRONMENT secret of `preview` (deployment branch: main) and
-#                                     `production` (deployment branch: main, tags: v*; required reviewers,
-#                                     prevent self-review), never as a repository secret, so a workflow on
-#                                     any other branch cannot read it.
+#                                     `production` (deployment branch: main, tags: v*), never as a
+#                                     repository secret, so a workflow on any other branch cannot read it.
 #   variable  PAGES_DOMAINS           comma-separated custom domains to attach to the Pages project
 #                                     (e.g. waxblock.io); the DNS record is managed in the zone itself
 #   variable  PAGES_PROJECT_TESTNET   Pages project for the testnet build (e.g. waxblock-testnet)
@@ -51,7 +49,7 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: "preview, or production (frontend only, from main; needs a maintainer's approval)"
+        description: "preview, or production (frontend only, from main)"
         type: choice
         options: [preview, production]
         default: preview
@@ -59,8 +57,7 @@ on:
 permissions:
   contents: read
 
-# A production run that waits for approval holds its group, so it gets its own group: it must not block
-# main's preview deploys, and a preview dispatch must not replace it.
+# A production run gets its own group, so a preview dispatch cannot replace it while it is queued.
 concurrency:
   group: deploy-${{ github.ref }}-${{ inputs.target || 'auto' }}
   cancel-in-progress: false
