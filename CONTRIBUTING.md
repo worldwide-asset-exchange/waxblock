@@ -17,8 +17,12 @@
 Conventions are in [AGENTS.md](AGENTS.md) (they apply to people and coding agents alike). New wallet and chain
 features use `@wharfkit/antelope`, not `eosjs` or `waxjs`.
 
-Releases are cut by the maintainers: a `vX.Y.Z` tag deploys the frontend and publishes the API image
+Releases are cut by the admins: a `vX.Y.Z` tag deploys the frontend and publishes the API image
 `ghcr.io/worldwide-asset-exchange/waxblock-api:vX.Y.Z`. Infrastructure providers then upgrade one at a time
 ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#upgrades)).
+
+A maintainer can also deploy the frontend alone to production: Actions → deploy → Run workflow on `main`, with
+target `production`. The run waits until a different maintainer approves the `production` deployment. It deploys
+what is on `main` and builds no API image.
 
 By contributing you agree that your contribution is licensed under the [MIT License](LICENSE).
