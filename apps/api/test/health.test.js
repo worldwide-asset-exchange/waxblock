@@ -68,4 +68,28 @@ describe("GET /api/v1/health", function () {
     expect(res.status).to.equal(503);
     expect(res.body.caches).to.deep.equal({ producers: false, tokens: false });
   });
+
+  describe("on testnet (no token list is built there)", function () {
+    const network = config.network_type;
+    beforeEach(() => (config.network_type = "testnet"));
+    afterEach(() => (config.network_type = network));
+
+    it("returns 200 without a token list", async function () {
+      config.endpoints.default = `http://127.0.0.1:${rpc.address().port}`;
+      headTime = new Date().toISOString().slice(0, -1);
+      globals.set("cacheData", { producers: [{ owner: "a" }], tokens: [] });
+      const res = await request(freshApp()).get("/api/v1/health");
+      expect(res.status).to.equal(200);
+      expect(res.body.network).to.equal("testnet");
+      expect(res.body.caches).to.deep.equal({ producers: true, tokens: "not used" });
+    });
+
+    it("returns 503 while the producer list is empty", async function () {
+      config.endpoints.default = `http://127.0.0.1:${rpc.address().port}`;
+      headTime = new Date().toISOString().slice(0, -1);
+      globals.set("cacheData", { producers: [], tokens: [] });
+      const res = await request(freshApp()).get("/api/v1/health");
+      expect(res.status).to.equal(503);
+    });
+  });
 });

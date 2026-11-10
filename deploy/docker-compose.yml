@@ -2,11 +2,12 @@
 # Runs mainnet and testnet side by side. Put a TLS-terminating reverse proxy (or your load balancer) in
 # front of ports 8080/8081; see docs/DEPLOYMENT.md.
 #
-#   WAXBLOCK_VERSION=v1.3.0 docker compose -f deploy/docker-compose.yml up -d
+#   WAXBLOCK_VERSION=v1.3.1@sha256:<digest from the release notes> docker compose up -d
+# or put that line in a .env file next to this file. See docs/install/docker.md.
 #
 services:
   waxblock-api-mainnet:
-    image: ghcr.io/worldwide-asset-exchange/waxblock-api:${WAXBLOCK_VERSION:?set WAXBLOCK_VERSION, e.g. v1.3.0}
+    image: ghcr.io/worldwide-asset-exchange/waxblock-api:${WAXBLOCK_VERSION:?set WAXBLOCK_VERSION, e.g. v1.3.1@sha256:<digest>}
     env_file: env/mainnet.env
     ports:
       - "127.0.0.1:8080:8080"
@@ -22,7 +23,7 @@ services:
       options: { max-size: "50m", max-file: "5" }
 
   waxblock-api-testnet:
-    image: ghcr.io/worldwide-asset-exchange/waxblock-api:${WAXBLOCK_VERSION:?set WAXBLOCK_VERSION, e.g. v1.3.0}
+    image: ghcr.io/worldwide-asset-exchange/waxblock-api:${WAXBLOCK_VERSION:?set WAXBLOCK_VERSION, e.g. v1.3.1@sha256:<digest>}
     env_file: env/testnet.env
     ports:
       - "127.0.0.1:8081:8080"

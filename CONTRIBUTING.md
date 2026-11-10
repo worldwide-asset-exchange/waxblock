@@ -19,7 +19,7 @@ features use `@wharfkit/antelope`, not `eosjs` or `waxjs`.
 
 Releases are cut by the admins: a `vX.Y.Z` tag deploys the frontend and publishes the API image
 `ghcr.io/worldwide-asset-exchange/waxblock-api:vX.Y.Z`. Infrastructure providers then upgrade one at a time
-([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#upgrades)).
+([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#releases-and-upgrades)).
 
 A maintainer can also deploy the frontend alone to production: Actions → deploy → Run workflow on `main`, with
 target `production`. It deploys the current `main` commit, not a release tag, and builds no API image. Step by

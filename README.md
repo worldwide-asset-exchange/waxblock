@@ -13,7 +13,8 @@ In addition, the integrated web wallet allows users to manage their WAX account.
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the frontend, the API and the multi-provider load balancing fit together |
 | [docs/API.md](docs/API.md) | REST routes, `/api/v1/health`, WebSocket events |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Every environment variable of the API and the frontend |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Running the API in production (Docker Compose, Kubernetes, TLS, health, upgrades) |
+| [docs/install/](docs/install/README.md) | Installing the API: bare metal (systemd), Docker, Kubernetes, AWS (EC2, ECS, EKS), TLS and access, troubleshooting |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Operating the API: health, upgrades, logs and monitoring |
 | [docs/PROVIDERS.md](docs/PROVIDERS.md) | Infrastructure providers: checklist and handover information |
 | [docs/RELEASING.md](docs/RELEASING.md) | Maintainers: frontend-only production deploys and versioned releases |
 | [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) | Contributing, reporting vulnerabilities |

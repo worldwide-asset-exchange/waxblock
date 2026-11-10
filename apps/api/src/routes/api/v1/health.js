@@ -43,11 +43,14 @@ router.get("/health", async function (req, res) {
     last = { at: Date.now(), result: await probeChain() };
   }
   const cacheData = globals.get("cacheData") || {};
+  // The token list is built only on mainnet (crons/index.js: Alcor mainnet markets), so testnet
+  // must not wait for it: it would stay 503 forever.
+  const tokensRequired = config.network_type === "mainnet";
   const caches = {
     producers: Array.isArray(cacheData.producers) && cacheData.producers.length > 0,
-    tokens: Array.isArray(cacheData.tokens) && cacheData.tokens.length > 0,
+    tokens: tokensRequired ? Array.isArray(cacheData.tokens) && cacheData.tokens.length > 0 : "not used",
   };
-  const ok = last.result.ok && caches.producers && caches.tokens;
+  const ok = last.result.ok && caches.producers && caches.tokens !== false;
   res.status(ok ? 200 : 503).json({
     status: ok ? "ok" : "unavailable",
     network: config.network_type,

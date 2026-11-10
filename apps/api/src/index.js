@@ -5,6 +5,13 @@ const http = require("http");
 const https = require("https");
 const socket = require("./socket");
 const crons = require("./crons");
+const originAuth = require("./middlewares/originAuth");
+
+const startupProblem = originAuth.startupProblem();
+if (startupProblem) {
+  logger.error(startupProblem);
+  process.exit(1);
+}
 var globals = require("node-global-storage");
 var storage = require("node-persist");
 
@@ -53,8 +60,9 @@ var cacheStorage = storage.create({ dir: `${config.cache_dir}/${config.network_t
   
 
   server = http.createServer(app);
-  server.listen(config.port, function () {
-    logger.info(`Express App and Socket Listening to port ${config.port}`);
+  server.listen(config.port, config.bind_address, function () {
+    logger.info(`Express App and Socket Listening to ${config.bind_address || "all interfaces"} port ${config.port}`);
+    logger.info(`Origin authentication: ${config.origin_auth_key ? "on" : "off"}`);
 
     crons.createCronJobs();
   });
@@ -132,9 +140,19 @@ const unexpectedErrorHandler = (error) => {
 process.on("uncaughtException", unexpectedErrorHandler);
 process.on("unhandledRejection", unexpectedErrorHandler);
 
-process.on("SIGTERM", () => {
-  logger.info("SIGTERM received");
-  if (server) {
-    server.close();
-  }
-});
+// systemd, Docker and Kubernetes stop the service with SIGTERM. Closing the listener alone is not enough:
+// open WebSocket and keep-alive connections and the cron timers keep the process alive, so disconnect
+// the clients, close the server and exit. The deadline stops a stuck connection from blocking a restart.
+const shutdown = (signal) => {
+  logger.info(`${signal} received, shutting down`);
+  setTimeout(() => process.exit(0), 10 * 1000).unref();
+  if (!server) process.exit(0);
+  // io.close() disconnects every socket.io client and then closes the HTTP server.
+  const done = () => process.exit(0);
+  if (io) io.close(done);
+  else server.close(done);
+  server.closeAllConnections();
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
