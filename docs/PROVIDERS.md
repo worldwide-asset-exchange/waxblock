@@ -67,8 +67,8 @@ repository. Everyone else has read access.
 - You can push branches and open pull requests in this repository. You do not need a fork.
 - `main` is protected. Every change needs a pull request, passing checks and an approval from a WaxBlock
   maintainer (`.github/CODEOWNERS`).
-- Only maintainers can create `v*` tags. A tag is a release: it deploys the frontend and publishes the API
-  image. Providers cannot create releases.
+- Only admins can create `v*` tags. A tag is a release: it deploys the frontend and publishes the API
+  image. Providers cannot create releases or deploy to production ([RELEASING.md](RELEASING.md)).
 - Deployment credentials are environment secrets that only `main` and `v*` tags can read. A workflow on your
   branch has no access to them.
 - Ask the maintainers for a release when your change is merged.

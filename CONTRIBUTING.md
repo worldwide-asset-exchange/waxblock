@@ -24,6 +24,6 @@ Releases are cut by the admins: a `vX.Y.Z` tag deploys the frontend and publishe
 A maintainer can also deploy the frontend alone to production: Actions → deploy → Run workflow on `main`, with
 target `production`. The run waits until a different maintainer or admin approves the `production` deployment
 (admins can bypass the approval). It deploys the `main` commit shown on the run, not a release tag, and builds
-no API image. The approver checks that commit before approving.
+no API image. The approver checks that commit before approving. Step by step: [docs/RELEASING.md](docs/RELEASING.md).
 
 By contributing you agree that your contribution is licensed under the [MIT License](LICENSE).
