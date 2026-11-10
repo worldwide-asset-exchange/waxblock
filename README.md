@@ -15,6 +15,7 @@ In addition, the integrated web wallet allows users to manage their WAX account.
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Every environment variable of the API and the frontend |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Running the API in production (Docker Compose, Kubernetes, TLS, health, upgrades) |
 | [docs/PROVIDERS.md](docs/PROVIDERS.md) | Infrastructure providers: checklist and handover information |
+| [docs/RELEASING.md](docs/RELEASING.md) | Maintainers: frontend-only production deploys and versioned releases |
 | [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) | Contributing, reporting vulnerabilities |
 
 ## Tech and background
