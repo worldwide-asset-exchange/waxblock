@@ -18,6 +18,7 @@ describe("GET /api/v1/health", function () {
   let rpc;
   let headTime;
   const original = config.endpoints.default;
+  const originalNetwork = config.network_type;
 
   before(function (done) {
     rpc = http.createServer((req, res) => {
@@ -28,7 +29,12 @@ describe("GET /api/v1/health", function () {
   });
   after(function (done) {
     config.endpoints.default = original;
+    config.network_type = originalNetwork;
     rpc.close(done);
+  });
+
+  afterEach(function () {
+    config.network_type = originalNetwork;
   });
 
   const populated = () => globals.set("cacheData", { producers: [{ owner: "a" }], tokens: [{ key: "t" }] });
@@ -67,5 +73,36 @@ describe("GET /api/v1/health", function () {
     const res = await request(freshApp()).get("/api/v1/health");
     expect(res.status).to.equal(503);
     expect(res.body.caches).to.deep.equal({ producers: false, tokens: false });
+  });
+  it("returns 503 on mainnet when the tokens cache is empty", async function () {
+    config.network_type = "mainnet";
+    config.endpoints.default = `http://127.0.0.1:${rpc.address().port}`;
+    headTime = new Date().toISOString().slice(0, -1);
+    globals.set("cacheData", { producers: [{ owner: "a" }], tokens: [] });
+    const res = await request(freshApp()).get("/api/v1/health");
+    expect(res.status).to.equal(503);
+    expect(res.body.caches.tokens).to.equal(false);
+  });
+
+  // The tokens cron runs on mainnet only, so the tokens cache is always empty on testnet.
+  it("returns 200 on testnet with an empty tokens cache", async function () {
+    config.network_type = "testnet";
+    config.endpoints.default = `http://127.0.0.1:${rpc.address().port}`;
+    headTime = new Date().toISOString().slice(0, -1);
+    globals.set("cacheData", { producers: [{ owner: "a" }], tokens: [] });
+    const res = await request(freshApp()).get("/api/v1/health");
+    expect(res.status).to.equal(200);
+    expect(res.body.network).to.equal("testnet");
+    expect(res.body.caches.tokens).to.equal(true);
+  });
+
+  it("returns 503 on testnet when the producers cache is empty", async function () {
+    config.network_type = "testnet";
+    config.endpoints.default = `http://127.0.0.1:${rpc.address().port}`;
+    headTime = new Date().toISOString().slice(0, -1);
+    globals.set("cacheData", { producers: [], tokens: [] });
+    const res = await request(freshApp()).get("/api/v1/health");
+    expect(res.status).to.equal(503);
+    expect(res.body.caches.producers).to.equal(false);
   });
 });
