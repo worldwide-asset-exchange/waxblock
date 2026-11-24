@@ -4,9 +4,10 @@ import {
   parseEndpointList,
 } from "./utilities/env-endpoints";
 
-// Mainnet API providers, round-robined in the browser. The WAX Team API (waxblock-api.waxblock.io)
-// was removed from the rotation on 2026-11-24; mainnet is served by EOS USA and EOSphere.
+// Mainnet API providers, round-robined in the browser: WAX Team, EOS USA, EOSphere. The WAX Team API
+// reads chain data from public providers since v1.5.0 (no K-Open).
 const apiUrls = parseEndpointList(import.meta.env.VITE_API_URL, [
+  "https://waxblock-api.waxblock.io",
   "https://waxblock-api.eosusa.io",
   "https://waxblock-api.eosphere.io",
 ]);
