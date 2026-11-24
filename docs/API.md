@@ -1,6 +1,6 @@
 # API reference
 
-Base URLs: mainnet is served by the provider APIs `https://waxblock-api.eosusa.io` and `https://waxblock-api.eosphere.io` (the UI round-robins across them); testnet is `https://testnet-api.waxblock.io`.
+Base URLs: mainnet is served by `https://waxblock-api.waxblock.io` (WAX Team), `https://waxblock-api.eosusa.io` and `https://waxblock-api.eosphere.io` (the UI round-robins across them); testnet is `https://testnet-api.waxblock.io`.
 All responses are JSON. All routes are `GET`, read-only and unauthenticated. CORS allows every origin.
 
 ## REST routes (`/api/v1`)
