@@ -7,7 +7,7 @@ const router = express.Router();
 
 // Health for load balancers and orchestrators.
 // 200 only when (1) the configured chain RPC answers get_info within the timeout and its head block is
-// recent, and (2) the slow-changing caches the explorer depends on are populated. Otherwise 503.
+// recent, and (2) the slow-changing caches the explorer depends on are populated (tokens: mainnet only). Otherwise 503.
 // The upstream probe is cached for CHECK_TTL_MS so a monitor polling every few seconds from many
 // locations cannot multiply load on the chain endpoint.
 const CHECK_TTL_MS = 10 * 1000;
@@ -45,7 +45,11 @@ router.get("/health", async function (req, res) {
   const cacheData = globals.get("cacheData") || {};
   const caches = {
     producers: Array.isArray(cacheData.producers) && cacheData.producers.length > 0,
-    tokens: Array.isArray(cacheData.tokens) && cacheData.tokens.length > 0,
+    // The tokens cache is filled by a mainnet-only cron (crons/index.js), so it is always empty on
+    // other networks. Require it only on mainnet, or every testnet origin reports 503 forever.
+    tokens:
+      config.network_type !== "mainnet" ||
+      (Array.isArray(cacheData.tokens) && cacheData.tokens.length > 0),
   };
   const ok = last.result.ok && caches.producers && caches.tokens;
   res.status(ok ? 200 : 503).json({
