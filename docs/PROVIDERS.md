@@ -30,6 +30,8 @@ frontend's endpoint list (`VITE_API_URL`).
 1. Deploy the mainnet and testnet API as described in [DEPLOYMENT.md](DEPLOYMENT.md), at the release tag we
    give you.
 2. Point the endpoints at your own WAX infrastructure where you can ([CONFIGURATION.md](CONFIGURATION.md)).
+   Each endpoint variable takes a list of providers with failover, so your own node can come first and the
+   recommended public providers after it ([CONFIGURATION.md](CONFIGURATION.md#provider-lists)).
 3. Serve both on HTTPS with a public certificate for your own hostnames, with WebSocket on `/socket/`.
 4. Keep both hostnames reachable from the public internet: browsers connect directly. A WAF or bot protection
    must not challenge or block browser XHR or WebSocket requests to `/api/` and `/socket/`.

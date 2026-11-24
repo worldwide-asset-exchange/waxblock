@@ -7,13 +7,14 @@ metadata:
 data:
   NETWORK_TYPE: mainnet
   PORT: "8080"
-  BLOCKCHAIN_DEFAULT: https://wax.eosusa.io
-  BLOCKCHAIN_STATE: https://wax.eosusa.io
-  BLOCKCHAIN_BLOCK: https://wax.eosusa.io
-  BLOCKCHAIN_TRANSACTION: https://wax.eosusa.io
-  BLOCKCHAIN_HISTORY: https://wax.eosusa.io
+  # Provider lists: primary[,primary...][;backup[,backup...]]. See docs/CONFIGURATION.md#provider-lists.
+  BLOCKCHAIN_DEFAULT: "https://wax.greymass.com,https://wax.eosusa.io,https://wax.eosphere.io,https://wax.api.eosnation.io,https://wax.eosdac.io"
+  BLOCKCHAIN_STATE: "https://wax.greymass.com,https://wax.eosusa.io,https://wax.eosphere.io,https://wax.api.eosnation.io,https://wax.eosdac.io"
+  BLOCKCHAIN_BLOCK: "https://wax.greymass.com,https://wax.eosusa.io,https://wax.eosphere.io,https://wax.api.eosnation.io,https://wax.eosdac.io"
+  BLOCKCHAIN_TRANSACTION: "https://wax.greymass.com,https://wax.eosphere.io,https://wax.eosdac.io;https://wax.eosusa.io"
+  BLOCKCHAIN_HISTORY: "https://wax.greymass.com,https://wax.eosusa.io,https://wax.eosphere.io,https://wax.eosdac.io"
   LIGHT_API: https://wax.light-api.net
-  ATOMICASSETS: https://wax.api.atomicassets.io
+  ATOMICASSETS: "https://wax.api.atomicassets.io,https://wax.eosusa.io,https://wax-aa.eosdac.io;https://wax-atomic-api.eosphere.io,https://atomic.wax.eosrio.io"
 ---
 apiVersion: apps/v1
 kind: Deployment

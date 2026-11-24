@@ -76,6 +76,10 @@ environment variable names: `HOST`, `PORT`, `BLOCKCHAIN_DEAFULT`,
 `BLOCKCHAIN_HISTORY`, `LIGHT_API`, `SIMPLEASSETS`, `ATOMICASSETS`, `ASSETS_COUNT`,
 and `ASSETS_COUNT_TIMESTAMP`. Set their values to match the selected chain.
 `HOST` is currently unused by the server listener; `PORT` defaults to 8080.
+Each chain and NFT endpoint variable takes a provider list,
+`primary[,primary...][;backup[,backup...]]`. The API round-robins across the
+primaries with failover (`src/services/roundRobin.js`). A single URL still works.
+See `docs/CONFIGURATION.md` for the rules and the recommended mainnet lists.
 
 Copy `apps/api/.env.mainnet` or `apps/api/.env.testnet` to `apps/api/.env` for the
 corresponding preset, then restart the API (or recreate its Compose container).

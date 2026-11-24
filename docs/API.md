@@ -25,13 +25,13 @@ All responses are JSON. All routes are `GET`, read-only and unauthenticated. COR
   "status": "ok",
   "network": "mainnet",
   "version": "v1.3.0",
-  "chain": { "ok": true, "head_block_num": 464777476, "head_block_age_seconds": 0, "latency_ms": 153 },
+  "chain": { "ok": true, "head_block_num": 464777476, "head_block_age_seconds": 0, "latency_ms": 153, "provider": "wax.eosphere.io", "providers": 5 },
   "caches": { "producers": true, "tokens": true }
 }
 ```
 
-- `200` when the configured RPC (`BLOCKCHAIN_DEFAULT`) answers `get_info` in less than 5 s, its head block is
-  at most `HEALTH_MAX_HEAD_AGE_SECONDS` (default 60) old, **and** the producer and token caches are populated.
+- `200` when one of the configured RPC providers (`BLOCKCHAIN_DEFAULT`, tried in turn) answers `get_info` within
+  5 s in total, its head block is at most `HEALTH_MAX_HEAD_AGE_SECONDS` (default 60) old, **and** the producer and token caches are populated.
 - `503` otherwise, with `status: "unavailable"` and the failing part in `chain` or `caches`.
 - After a cold start (empty cache), `/health` returns `503` for about 2–3 minutes until the token list is built.
   This is correct: the instance cannot serve complete data yet.

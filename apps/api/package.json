@@ -5,8 +5,9 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "test": "npm run test:config && npm run test:cron && npm run test:producer && npm run test:api && npm run test:backward-compat && npm run test:health",
+    "test": "npm run test:config && npm run test:round-robin && npm run test:cron && npm run test:producer && npm run test:api && npm run test:backward-compat && npm run test:health",
     "test:config": "mocha test/config.test.js --timeout 10000",
+    "test:round-robin": "mocha test/round-robin.test.js --timeout 10000",
     "test:cron": "mocha test/cron.test.js --timeout 10000",
     "test:all": "npm test",
     "test:watch": "mocha test/producer.test.js --watch --timeout 10000",

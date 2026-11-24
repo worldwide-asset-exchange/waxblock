@@ -2,6 +2,8 @@ const express = require("express");
 const fetch = require("node-fetch");
 const globals = require("node-global-storage");
 const config = require("../../../config/config");
+const { getPool } = require("../../../services/roundRobin");
+const { USER_AGENT } = require("../../../services/fetchManager");
 
 const router = express.Router();
 
@@ -16,12 +18,19 @@ const MAX_HEAD_AGE_S = Number(process.env.HEALTH_MAX_HEAD_AGE_SECONDS || 60);
 
 let last = { at: 0, result: null };
 
-async function probeChain() {
+// BLOCKCHAIN_DEFAULT may hold a provider list (services/roundRobin.js). The probe tries the
+// providers in round-robin order within one overall RPC_TIMEOUT_MS budget. A provider that does not
+// answer, answers with an error, or serves a stale head block is marked failed (skipped for 30 s by
+// every caller) and the next one is tried. The API is healthy when at least one provider is.
+async function probeOne(endpoint, timeoutMs) {
   const started = Date.now();
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`${config.endpoints.default}/v1/chain/get_info`, { signal: controller.signal });
+    const res = await fetch(`${endpoint}/v1/chain/get_info`, {
+      signal: controller.signal,
+      headers: { "User-Agent": USER_AGENT },
+    });
     if (!res.ok) return { ok: false, error: `get_info HTTP ${res.status}` };
     const info = await res.json();
     const headAge = Math.round((Date.now() - Date.parse(info.head_block_time + "Z")) / 1000);
@@ -36,6 +45,21 @@ async function probeChain() {
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function probeChain() {
+  const pool = getPool(config.endpoints.default);
+  const deadline = Date.now() + RPC_TIMEOUT_MS;
+  const order = pool.order();
+  let result = { ok: false, error: "no RPC provider configured" };
+  for (const endpoint of order) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    result = { ...(await probeOne(endpoint, remaining)), provider: new URL(endpoint).host };
+    if (result.ok) break;
+    pool.markFailed(endpoint);
+  }
+  return { ...result, providers: order.length };
 }
 
 router.get("/health", async function (req, res) {
