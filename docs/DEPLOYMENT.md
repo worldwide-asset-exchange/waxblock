@@ -45,7 +45,9 @@ shared).
 6. **Outbound access** to your WAX nodes and to the third-party hosts listed in
    [CONFIGURATION.md](CONFIGURATION.md).
 7. **Your own WAX nodes (recommended).** Point `BLOCKCHAIN_*`, `LIGHT_API` and `ATOMICASSETS` at your own
-   infrastructure. See [CONFIGURATION.md](CONFIGURATION.md).
+   infrastructure. See [CONFIGURATION.md](CONFIGURATION.md). Each variable takes a list of providers
+   (`primary,primary;backup`), so you can put your own node first and public providers after it. The
+   recommended public lists are in [CONFIGURATION.md](CONFIGURATION.md#recommended-public-providers-mainnet).
 
 ## Install with Docker Compose
 

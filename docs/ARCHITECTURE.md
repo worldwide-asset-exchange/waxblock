@@ -43,6 +43,7 @@ flowchart LR
 | Live blocks, top dapps, TPS | every 1–2 s, **only while at least one socket client is connected** | RPC `get_block` |
 
 - The cache is written to `CACHE_DIR/<network>` with `node-persist`. On restart the API loads it, so the data is available before the first poll completes. The cache can be deleted at any time; it is rebuilt in about 3 minutes.
+- **The API load-balances its own upstreams.** Each chain and AtomicAssets endpoint variable holds a list of public providers. The API sends consecutive requests to them in turn, from a random start per process, and skips a failed provider for 30 s. Backups get traffic only when every primary failed or is cooling down. This is the same model as the browser uses for the API itself (see [CONFIGURATION.md](CONFIGURATION.md#provider-lists)).
 - **No database, no message queue, no secrets.** Every instance is independent and has the same data after its first poll cycle. This is what allows the browser to send consecutive requests to different providers.
 
 ## Multi-provider model

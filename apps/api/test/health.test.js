@@ -58,6 +58,17 @@ describe("GET /api/v1/health", function () {
     expect(res.body.chain.ok).to.equal(false);
   });
 
+  it("returns 200 when one provider in a list is down and the next one answers", async function () {
+    config.endpoints.default = `http://127.0.0.1:1,http://127.0.0.1:${rpc.address().port}`;
+    headTime = new Date().toISOString().slice(0, -1);
+    populated();
+    const res = await request(freshApp()).get("/api/v1/health");
+    expect(res.status).to.equal(200);
+    expect(res.body.chain.ok).to.equal(true);
+    expect(res.body.chain.provider).to.equal(`127.0.0.1:${rpc.address().port}`);
+    expect(res.body.chain.providers).to.equal(2);
+  });
+
   it("returns 503 when the chain RPC is unreachable", async function () {
     config.endpoints.default = "http://127.0.0.1:1";
     populated();

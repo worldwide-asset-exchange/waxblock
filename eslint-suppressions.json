@@ -84,14 +84,6 @@
       "count": 3
     }
   },
-  "apps/api/src/services/fetchManager.js": {
-    "no-unreachable": {
-      "count": 8
-    },
-    "no-unused-vars": {
-      "count": 2
-    }
-  },
   "apps/api/src/test.js": {
     "no-unused-vars": {
       "count": 5
