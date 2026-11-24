@@ -1,46 +1,41 @@
 import config from "../config";
+import { createRoundRobin } from "../utilities/round-robin";
 import FetchManager from "./fetchManager";
+
+// Requests go to the API providers in turn, from a random start per page load. A provider that
+// fails is skipped for 30 s, and the request is retried on the next provider.
+const providers = createRoundRobin(config.api.urls ?? []);
+
+const get = (path: string) =>
+  FetchManager.get(providers.order(), {
+    path: `${config.api.path}${path}`,
+    onEndpointFailure: providers.markFailed,
+  });
 
 const ApiManager = {
   getTokenPrice() {
-    return FetchManager.get(config.api.url, {
-      path: `${config.api.path}/token/price`,
-    });
+    return get("/token/price");
   },
   getProducers() {
-    return FetchManager.get(config.api.url, {
-      path: `${config.api.path}/producers`,
-    });
+    return get("/producers");
   },
   getProxies() {
-    return FetchManager.get(config.api.url, {
-      path: `${config.api.path}/proxies`,
-    });
+    return get("/proxies");
   },
   getTokens() {
-    return FetchManager.get(config.api.url, {
-      path: `${config.api.path}/tokens`,
-    });
+    return get("/tokens");
   },
   getTokensStats() {
-    return FetchManager.get(config.api.url, {
-      path: `${config.api.path}/tokens/stats`,
-    });
+    return get("/tokens/stats");
   },
   getToken(key) {
-    return FetchManager.get(config.api.url, {
-      path: `${config.api.path}/tokens/${key}`,
-    });
+    return get(`/tokens/${key}`);
   },
   getTokenHoldersCount(key) {
-    return FetchManager.get(config.api.url, {
-      path: `${config.api.path}/tokens/holdersCount/${key}`,
-    });
+    return get(`/tokens/holdersCount/${key}`);
   },
   getTokenTopHolders(key) {
-    return FetchManager.get(config.api.url, {
-      path: `${config.api.path}/tokens/topHolders/${key}`,
-    });
+    return get(`/tokens/topHolders/${key}`);
   },
 };
 

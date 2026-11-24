@@ -33,17 +33,15 @@ shared).
 ## Requirements
 
 1. **TLS.** Serve HTTPS on port 443 with a publicly trusted certificate for **your own hostname**
-   (for example `waxblock-api.<your-domain>`). Cloudflare connects to your hostname with SNI and the
-   `Host` header set to that hostname, and validates the certificate (Full strict).
+   (for example `waxblock-api.<your-domain>`). Browsers connect to your hostname directly.
 2. **WebSocket.** Your proxy must pass WebSocket upgrades on path `/socket/` (HTTP/1.1 `Upgrade`, idle
    timeout of at least 100 s).
 3. **Paths.** Forward `/api/` and `/socket/` to the container. Nothing else is needed.
-4. **Health.** `GET https://<your-hostname>/api/v1/health` must reach the container. Cloudflare's monitor
-   probes it every 60 s from several regions (see [Health](#health)).
-5. **Source restriction (recommended).** Accept HTTPS only from Cloudflare IP ranges
-   (<https://www.cloudflare.com/ips/>). We will also ask you to enable
-   [Authenticated Origin Pulls](https://developers.cloudflare.com/ssl/origin-configuration/authenticated-origin-pull/)
-   with the certificate we send you, so that only our Cloudflare zone can reach the origin.
+4. **Health.** `GET https://<your-hostname>/api/v1/health` must reach the container. Use it for your own
+   monitoring and readiness checks (see [Health](#health)).
+5. **Public access.** Do not restrict the source IP: visitors' browsers connect directly. You may put your
+   own CDN or WAF in front, as long as it does not challenge browser XHR or WebSocket requests and keeps
+   the `Access-Control-Allow-Origin` header.
 6. **Outbound access** to your WAX nodes and to the third-party hosts listed in
    [CONFIGURATION.md](CONFIGURATION.md).
 7. **Your own WAX nodes (recommended).** Point `BLOCKCHAIN_*`, `LIGHT_API` and `ATOMICASSETS` at your own
@@ -93,7 +91,7 @@ endpoints. Expose the Service with your Ingress controller (TLS + WebSocket).
 
 The example uses `/api/v1/test` for liveness (the process is alive) and `/api/v1/health` for readiness (data
 is complete). Do **not** use `/api/v1/health` for liveness: a chain RPC outage would then restart the pod in a
-loop instead of letting the load balancer route around it.
+loop instead of letting browsers route around it.
 
 ## Health
 
@@ -116,4 +114,3 @@ built-in `HEALTHCHECK` allows 5 minutes for this. Keep the persisted cache volum
 
 - Logs go to stdout in plain text (one line per request, plus job messages).
 - Minimum monitoring: alert when `/api/v1/health` is not `200` for 5 minutes.
-- Cloudflare's monitor also watches every provider. We contact you if your origin is marked unhealthy.

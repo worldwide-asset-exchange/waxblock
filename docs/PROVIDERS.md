@@ -1,7 +1,8 @@
 # Infrastructure providers
 
-WaxBlock's API is served by several independent infrastructure providers. Cloudflare Load Balancing sends
-each request for `waxblock-api.waxblock.io` and `testnet-api.waxblock.io` to a healthy provider.
+WaxBlock's API is served by several independent infrastructure providers. The WaxBlock frontend has the list
+of provider hostnames and spreads requests across them in the browser: round robin from a random start, with
+retry on the next provider when one fails ([ARCHITECTURE.md](ARCHITECTURE.md#multi-provider-model)).
 
 ## Providers
 
@@ -11,19 +12,17 @@ each request for `waxblock-api.waxblock.io` and `testnet-api.waxblock.io` to a h
 | EOSphere | — | — | onboarding |
 | EOS Sweden | — | — | onboarding |
 
-The maintainers update this table when a provider's origins pass the checks below and are added to the load
-balancer.
+The maintainers update this table when a provider's origins pass the checks below and are added to the
+frontend's endpoint list (`VITE_API_URL`).
 
-## How the load balancer uses your origin
+## How browsers use your origin
 
 | Setting | Value |
 |---|---|
-| Pools | `waxblock-api-mainnet` and `waxblock-api-testnet`, one origin per provider in each |
-| Origin address | your hostname, for example `waxblock-api.<your-domain>` |
-| Host header / SNI sent to you | your hostname (not `waxblock-api.waxblock.io`) |
-| Health monitor | `GET https://<your-hostname>/api/v1/health`, expect `200`, every 60 s, timeout 10 s, 2 retries, from several regions |
-| Steering | dynamic (lowest latency among healthy origins); an unhealthy origin gets no traffic |
-| Session affinity | cookie, 1 h (safety net; the frontend uses WebSocket only) |
+| Who connects | visitors' browsers, directly, from `https://waxblock.io` and `https://testnet.waxblock.io` |
+| Requests | `GET /api/v1/*` (XHR, cross-origin) and WebSocket on `/socket/` |
+| CORS | the API image sends `Access-Control-Allow-Origin: *`; your proxy must not remove it or block `OPTIONS` |
+| Rotation | round robin across all providers from a random start; a failing provider is skipped for 30 s |
 | Traffic you can expect | measured before the migration: ~45,000 API requests/day on mainnet, ~10,000 on testnet, split across providers |
 
 ## Checklist for a provider
@@ -32,7 +31,8 @@ balancer.
    give you.
 2. Point the endpoints at your own WAX infrastructure where you can ([CONFIGURATION.md](CONFIGURATION.md)).
 3. Serve both on HTTPS with a public certificate for your own hostnames, with WebSocket on `/socket/`.
-4. Restrict HTTPS to Cloudflare IP ranges, and enable Authenticated Origin Pulls with the certificate we send.
+4. Keep both hostnames reachable from the public internet: browsers connect directly. A WAF or bot protection
+   must not challenge or block browser XHR or WebSocket requests to `/api/` and `/socket/`.
 5. Check from outside:
 
    ```sh
