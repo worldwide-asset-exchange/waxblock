@@ -17,10 +17,12 @@ const config_localnet = {
   },
   socket: {
     url: null,
+    urls: [] as string[],
     path: null,
   },
   api: {
     url: null,
+    urls: [] as string[],
     path: null,
   },
 };

@@ -27,6 +27,8 @@ interface FetchParams {
   body?: BodyInit;
   headers?: HeadersInit;
   signal?: AbortSignal;
+  /** Called for each endpoint that failed with a retryable error, before the next one is tried. */
+  onEndpointFailure?: (endpoint: string) => void;
 }
 
 const FetchManager = {
@@ -134,6 +136,7 @@ const FetchManager = {
       } catch (error) {
         if (params.signal?.aborted) throw params.signal.reason;
         if (!readOnly || !retryable) throw error;
+        params.onEndpointFailure?.(endpoint);
         if (managed) markEndpointFailed(managed, endpoint);
         if (attempt >= (params.retries ?? 5)) throw error;
         clearTimeout(timer);

@@ -5,7 +5,7 @@ WaxBlock has two components. They are built from this monorepo and deployed sepa
 | Component | Source | Runs as | Serves |
 |---|---|---|---|
 | Frontend | `apps/web` | Static site (Cloudflare Pages) | `waxblock.io`, `testnet.waxblock.io`, `local.waxblock.io` |
-| API | `apps/api` | Container image `ghcr.io/worldwide-asset-exchange/waxblock-api` | `waxblock-api.waxblock.io` (mainnet), `testnet-api.waxblock.io` (testnet) |
+| API | `apps/api` | Container image `ghcr.io/worldwide-asset-exchange/waxblock-api` | One hostname per provider and network, for example `waxblock-api.waxblock.io`, `waxblock-api.eosusa.io`, `waxblock-api.eosphere.io` (mainnet) |
 
 ## Request flow
 
@@ -13,11 +13,9 @@ WaxBlock has two components. They are built from this monorepo and deployed sepa
 flowchart LR
   U[Browser] -->|HTML, JS, CSS| CF[Cloudflare edge]
   CF --> P[Cloudflare Pages: apps/web]
-  U -->|XHR /api/v1/* and WebSocket /socket/| CF
-  CF --> LB{Cloudflare Load Balancer}
-  LB --> A1[Provider A: waxblock-api]
-  LB --> A2[Provider B: waxblock-api]
-  LB --> A3[Provider C: waxblock-api]
+  U -->|XHR /api/v1/* round robin, WebSocket /socket/| A1[Provider A: waxblock-api]
+  U --> A2[Provider B: waxblock-api]
+  U --> A3[Provider C: waxblock-api]
   U -->|chain reads and signed transactions| RPC[Public WAX RPC / Hyperion / Light API / AtomicAssets]
   A1 & A2 & A3 -->|polling| RPC
   A1 & A2 & A3 -->|market and token metadata| EXT[CoinGecko, Alcor, eos-airdrops, alohaeos]
@@ -45,12 +43,13 @@ flowchart LR
 | Live blocks, top dapps, TPS | every 1–2 s, **only while at least one socket client is connected** | RPC `get_block` |
 
 - The cache is written to `CACHE_DIR/<network>` with `node-persist`. On restart the API loads it, so the data is available before the first poll completes. The cache can be deleted at any time; it is rebuilt in about 3 minutes.
-- **No database, no message queue, no secrets.** Every instance is independent and has the same data after its first poll cycle. This is what allows several providers to serve the same hostname behind a load balancer.
+- **No database, no message queue, no secrets.** Every instance is independent and has the same data after its first poll cycle. This is what allows the browser to send consecutive requests to different providers.
 
 ## Multi-provider model
 
 - Three infrastructure providers each run the API for mainnet and for testnet.
-- Cloudflare Load Balancing sends each request to a healthy provider. The health signal is `GET /api/v1/health` (see [DEPLOYMENT.md](DEPLOYMENT.md#health)).
-- Provider instances do not talk to each other. A provider failure removes that provider from the pool; the others keep serving.
-- WebSocket connections stay on the provider that accepted them until they close. HTTP long-polling is not used, so the load balancer needs no session affinity for correctness (session affinity is still enabled as a safety net).
+- **The browser load-balances.** The frontend is built with the list of provider hostnames (`VITE_API_URL`, see [CONFIGURATION.md](CONFIGURATION.md)). `apps/web/src/app/utilities/round-robin.ts` sends consecutive API requests to the providers in turn. The starting provider is random per page load, so visitors do not all start on the first provider in the list.
+- A request that fails with a network error, a timeout, `408`, `429` or `5xx` is retried on the next provider. The failed provider moves to the end of the order for 30 s. A `4xx` response is not retried.
+- The WebSocket connection starts on a random provider and stays there until it closes. After 3 failed reconnection attempts it moves to the next provider. HTTP long-polling is not used.
+- Provider instances do not talk to each other. A failed provider is skipped; the others keep serving.
 - The frontend is deployed by the WaxBlock maintainers to Cloudflare Pages. Providers do not deploy it.

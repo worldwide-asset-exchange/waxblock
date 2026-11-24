@@ -1,10 +1,14 @@
 import React, { createContext, useEffect, useState } from "react";
 
-import io from "socket.io-client";
+import io, { type Socket } from "socket.io-client";
 import config from "../config";
 import type { SocketContextValue } from "../types/socket";
+import { createRoundRobin } from "../utilities/round-robin";
 
 const SocketContext = createContext<SocketContextValue>(null);
+
+// Attempts on one provider before the socket moves to the next provider in the list.
+const RECONNECT_ATTEMPTS_PER_PROVIDER = 3;
 
 const SocketContextProvider = ({ children }: { children: React.ReactNode }) => {
   const [socket, setSocket] = useState<SocketContextValue>(null);
@@ -14,21 +18,42 @@ const SocketContextProvider = ({ children }: { children: React.ReactNode }) => {
     if (config.network_type === "localnet") return;
     //////////No socket for localnet//////////
 
-    const newSocket = io(config.socket.url, {
-      path: config.socket.path,
-      // WebSocket only: the API runs behind a load balancer across independent providers, and
-      // HTTP long-polling breaks when consecutive polls land on different instances.
-      transports: ["websocket"],
-    });
-    newSocket.on("connect", () => {
-      setSocket(newSocket);
-    });
-    newSocket.on("disconnect", () => {
-      setSocket(newSocket);
-    });
+    // Start on a random provider, so visitors spread across providers. When a provider cannot be
+    // reached, move to the next one, and wrap around.
+    const providers = createRoundRobin(config.socket.urls ?? []).order();
+    if (!providers.length) return;
+
+    let stopped = false;
+    let index = 0;
+    let current: Socket | null = null;
+
+    const connect = (): Socket => {
+      const newSocket = io(providers[index % providers.length], {
+        path: config.socket.path,
+        // WebSocket only: consecutive HTTP long-polling requests must reach the same instance.
+        transports: ["websocket"],
+        reconnectionAttempts: RECONNECT_ATTEMPTS_PER_PROVIDER,
+      });
+      newSocket.on("connect", () => {
+        if (current === newSocket) setSocket(newSocket);
+      });
+      newSocket.on("disconnect", () => {
+        if (current === newSocket) setSocket(newSocket);
+      });
+      newSocket.io.on("reconnect_failed", () => {
+        if (stopped || current !== newSocket) return;
+        newSocket.disconnect();
+        index += 1;
+        current = connect();
+      });
+      return newSocket;
+    };
+
+    current = connect();
 
     return () => {
-      newSocket.disconnect();
+      stopped = true;
+      current?.disconnect();
     };
   }, []);
 

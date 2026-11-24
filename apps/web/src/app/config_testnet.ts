@@ -1,4 +1,13 @@
-import { endpointWeights, firstEndpoint } from "./utilities/env-endpoints";
+import {
+  endpointWeights,
+  firstEndpoint,
+  parseEndpointList,
+} from "./utilities/env-endpoints";
+
+const apiUrls = parseEndpointList(import.meta.env.VITE_API_URL, [
+  "https://testnet-api.waxblock.io",
+]);
+const socketUrls = parseEndpointList(import.meta.env.VITE_SOCKET_URL, apiUrls);
 
 const config_testnet = {
   app_name: "waxblock.io",
@@ -25,12 +34,16 @@ const config_testnet = {
       ]),
     },
   },
+  // The WaxBlock API runs at several independent providers. VITE_API_URL and VITE_SOCKET_URL are
+  // comma-separated lists; the browser spreads requests across them (utilities/round-robin.ts).
   socket: {
-    url: import.meta.env.VITE_SOCKET_URL || "https://testnet-api.waxblock.io",
+    url: socketUrls[0],
+    urls: socketUrls,
     path: "/socket",
   },
   api: {
-    url: import.meta.env.VITE_API_URL || "https://testnet-api.waxblock.io",
+    url: apiUrls[0],
+    urls: apiUrls,
     path: "/api/v1",
   },
 };
