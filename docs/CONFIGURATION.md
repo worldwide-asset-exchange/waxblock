@@ -39,7 +39,7 @@ Build-time variables (Vite). Set them before `npm run build`. Examples: `apps/we
 |---|---|
 | `VITE_NETWORK_TYPE` | `mainnet`, `testnet` or `localnet` |
 | `VITE_CHAIN_ID` | Chain ID of the network |
-| `VITE_API_URL` | WaxBlock API base URL, for example `https://waxblock-api.waxblock.io` |
+| `VITE_API_URL` | WaxBlock API base URL, or a comma-separated list that the UI round-robins, for example `https://waxblock-api.eosusa.io,https://waxblock-api.eosphere.io` |
 | `VITE_SOCKET_URL` | WaxBlock API base URL for the WebSocket (normally the same as `VITE_API_URL`) |
 | `VITE_RPC_ENDPOINTS` | Comma-separated chain RPC endpoints the browser may use |
 | `VITE_HISTORY_ENDPOINTS` | Comma-separated Hyperion endpoints |
